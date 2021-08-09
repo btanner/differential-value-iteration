@@ -1,7 +1,8 @@
 """Sample program that runs a dvi algorithm on a sample MDP."""
 import numpy as np
-from dvi.algorithms import algorithms
-from dvi.environments import environments
+
+from src.differential_value_iteration.algorithms import algorithms
+from src.differential_value_iteration.environments import environments
  
 def run():
   env = environments.ThreeLoopMRP()
