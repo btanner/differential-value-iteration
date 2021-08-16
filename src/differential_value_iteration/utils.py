@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def run_alg(alg, update_rule, max_iters=50000, epsilon=0.001):
+def run_alg(alg, update_rule, max_iters=50000, epsilon=0.0001):
 	if hasattr(alg, update_rule):
 		update = getattr(alg, update_rule)
 	else:
@@ -11,8 +11,19 @@ def run_alg(alg, update_rule, max_iters=50000, epsilon=0.001):
 	convergence = False
 	for i in range(max_iters):
 		old_v = alg.v.copy()
+		if hasattr(alg, 'r_bar'):
+			if type(alg.r_bar) is int:
+				old_r_bar = alg.r_bar
+			else:
+				old_r_bar = alg.r_bar.copy()
 		update()
-		if np.sum(np.abs(old_v - alg.v)) < epsilon:   # convergence criteria should take r_bar into account as well
+		# print(alg.alpha, alg.beta, alg.v, alg.g)
+		if hasattr(alg, 'r_bar'):
+			r_bar_error = np.sum(np.abs(old_r_bar - alg.r_bar))
+		else:
+			r_bar_error = 0
+		if np.sum(np.abs(old_v - alg.v)) + r_bar_error < epsilon:
+			# print(old_v, alg.v, old_g, alg.g, np.sum(np.abs(old_v - alg.v)), g_error, np.sum(np.abs(old_v - alg.v)) + g_error)
 			convergence = True
 			break
 	return convergence
@@ -27,8 +38,9 @@ def draw(results, name, alpha_list, beta_list=None):
 	else:
 		plt.xlabel(r'$\beta$')
 		plt.xticks(np.arange(beta_list.__len__()), beta_list)
-	
 	plt.imshow(results, cmap='viridis', interpolation='nearest')
 	plt.colorbar()
+	plt.clim(0, 1)
 	plt.title(name)
 	plt.savefig(name+'.pdf')
+	plt.close()

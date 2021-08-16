@@ -1,13 +1,11 @@
-# MRP with 3 states in a loop with a reward of 3 in one of the transitions
-# (like in Exercise 10.7 of Sutton and Barto's (2018) textbook)
-
 import numpy as np
 
 
 class MRP:
-    def __init__(self, P, r):
+    def __init__(self, P, r, name):
         self.P = P
         self.r = r
+        self.name = name
     
     def is_multichain(self):
         raise NotImplementedError
@@ -17,9 +15,10 @@ class MRP:
 
 
 class MDP:
-    def __init__(self, P, r):
+    def __init__(self, P, r, name):
         self.P = P
         self.r = r
+        self.name = name
     
     def is_multichain(self):
         raise NotImplementedError
@@ -31,29 +30,37 @@ class MDP:
         return self.P.shape[1]
     
     
-three_loop_mrp = MRP(np.array([
+mrp1 = MRP(np.array([
     [0, 1, 0],
     [0, 0, 1],
     [1, 0, 0]
-    ], dtype=float), np.array([0, 0, 3], dtype=float)
+    ], dtype=float), np.array([0, 0, 3], dtype=float), 'mrp1'
 )
-three_one_mrp = MRP(np.array([
+
+mrp2 = MRP(np.array([
     [0.0, 0.9, 0.1, 0.0],
     [0.1, 0.0, 0.9, 0.0],
     [0.9, 0.1, 0.0, 0.0],
     [0.0, 0.0, 0.0, 1.0]
-]), np.array([0.0, 1.0, 8.0, 20.0]))
-two_state_mdp = MDP(np.array([
+]), np.array([0.0, 1.0, 8.0, 20.0]), 'mrp2')
+
+mrp3 = MRP(np.array([
+    [0.2, 0.8],
+    [0.2, 0.8]
+]), np.array([1.0, 1.0]), 'mrp3')
+
+mdp1 = MDP(np.array([
     [[1.0, 0.0], [0.0, 1.0]],  # first action
     [[0.0, 1.0], [1.0, 0.0]]   # second action
 ]), np.array([
     [1.0, 1.0],  # first action
     [0.0, 0.0]   # second action
-]))
-two_state_mdp2 = MDP(np.array([
+]), 'mdp1')
+
+mdp2 = MDP(np.array([
     [[1.0, 0.0], [0.0, 1.0]],  # first action
     [[1.0, 0.0], [0.0, 1.0]]   # second action
 ]), np.array([
     [1.0, 1.0],  # first action
     [1.0, 2.0]   # second action
-]))
+]), 'mdp2')
