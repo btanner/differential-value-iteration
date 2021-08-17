@@ -1,14 +1,13 @@
 """Sample program that runs a dvi algorithm on a sample MDP."""
 import numpy as np
 
-from differential_value_iteration.algorithms import algorithms
-from differential_value_iteration.environments import environments
 from differential_value_iteration.utils import run_alg, draw
 from pathlib import Path
 
 from differential_value_iteration.algorithms import algorithms
 from differential_value_iteration.environments import environments
- 
+
+
 def run():
 	alphas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
 	betas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]

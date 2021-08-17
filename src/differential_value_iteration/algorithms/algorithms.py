@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.differential_value_iteration.environments import MRP, MDP
+from differential_value_iteration.environments import MRP, MDP
 
 
 class RVI_Evaluation(object):
