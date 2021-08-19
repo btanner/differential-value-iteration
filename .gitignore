@@ -1,3 +1,9 @@
+# Temporary experimental artifacts.
+plots/
+
+# Project files for IDE
+*.iml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
