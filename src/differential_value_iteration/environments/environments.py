@@ -11,6 +11,7 @@ class MarkovRewardsProcess:
   rewards: np.ndarray
   name: str
 
+  @property
   def num_states(self):
     return len(self.transitions)
 
@@ -23,9 +24,11 @@ class MarkovDecisionProcess:
   rewards: np.ndarray
   name: str
 
+  @property
   def num_states(self):
     return len(self.transitions)
 
+  @property
   def num_actions(self):
     return self.transitions.shape[1]
 
