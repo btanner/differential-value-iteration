@@ -17,7 +17,7 @@ def run():
   epsilon = 1e-7
   plots_dir = "plots/"
   Path(plots_dir).mkdir(parents=True, exist_ok=True)
-  envs = [environments.mrp1, environments.mrp2, environments.mrp3]
+  envs = [environments.mrp1]#, environments.mrp2, environments.mrp3]
   for env in envs:
     init_v = np.zeros(env.num_states())
     init_r_bar_scalar = 0
