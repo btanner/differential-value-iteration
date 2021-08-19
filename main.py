@@ -8,15 +8,13 @@ from differential_value_iteration.environments import environments
 
 
 def run():
-  # alphas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
-  # betas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
-  alphas = [.01]
-  betas = [.01]
+  alphas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
+  betas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
   max_iters = 100000
   epsilon = 1e-7
   plots_dir = "plots/"
   Path(plots_dir).mkdir(parents=True, exist_ok=True)
-  envs = [environments.mrp1]  # , environments.mrp2, environments.mrp3]
+  envs = [environments.mrp1, environments.mrp2, environments.mrp3]
   for env in envs:
     init_v = np.zeros(env.num_states)
     init_r_bar_scalar = 0

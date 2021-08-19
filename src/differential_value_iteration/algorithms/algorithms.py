@@ -1,12 +1,27 @@
 import numpy as np
 
 
-# from differential_value_iteration.environments import MRP, MDP
+def _check_mrp(mrp):
+  if mrp.transitions.ndim != 2:
+    raise ValueError(
+      f'mrp transitions should be 2 dimensional, not: {mrp.transitions.shape}')
+  if mrp.rewards.ndim != 1:
+    raise ValueError(
+      f'mrp rewards should be 1 dimensional, not: {mrp.rewards.shape}')
+
+
+def _check_mdp(mdp):
+  if mdp.transitions.ndim != 3:
+    raise ValueError(
+      f'mrd transitions should be 3 dimensional, not: {mdp.transitions.shape}')
+  if mdp.rewards.ndim != 2:
+    raise ValueError(
+      f'mrd rewards should be 2 dimensional, not: {mdp.rewards.shape}')
 
 
 class RVI_Evaluation:
   def __init__(self, mrp, v, alpha: float = 1., ref_idx: int = 0):
-    # assert type(mrp) is MRP
+    _check_mrp(mrp)
     self.p = mrp.transitions
     self.r = mrp.rewards
     self.init_v = v.copy()
@@ -36,7 +51,7 @@ class RVI_Evaluation:
 
 class RVI_Control(object):
   def __init__(self, mdp, v, alpha=1.0, ref_idx=0):
-    # assert type(mdp) is MDP
+    _check_mdp(mdp)
     self.p = mdp.transitions
     self.r = mdp.rewards
     self.init_v = v.copy()
@@ -74,7 +89,7 @@ class RVI_Control(object):
 
 class DVI_Evaluation(object):
   def __init__(self, mrp, init_v, init_r_bar, alpha=1.0, beta=1.0):
-    # assert type(mrp) is MRP
+    _check_mrp(mrp)
     self.p = mrp.transitions
     self.r = mrp.rewards
     self.init_v = init_v.copy()
@@ -106,7 +121,7 @@ class DVI_Evaluation(object):
 
 class DVI_Control(object):
   def __init__(self, mdp, init_v, init_r_bar, alpha=1.0, beta=1.0):
-    # assert type(mdp) is MDP
+    _check_mdp(mdp)
     self.p = mdp.transitions
     self.r = mdp.rewards
     self.init_v = init_v.copy()
@@ -147,7 +162,7 @@ class DVI_Control(object):
 
 class MDVI_Evaluation(object):
   def __init__(self, mrp, init_v, init_r_bar, alpha=1.0, beta=1.0):
-    # assert type(mrp) is MRP
+    _check_mrp(mrp)
     self.p = mrp.transitions
     self.r = mrp.rewards
     self.init_v = init_v.copy()
@@ -183,7 +198,7 @@ class MDVI_Evaluation(object):
 class MDVI_Control1(object):
   def __init__(self, mdp, init_v, init_r_bar, alpha=1.0, beta=1.0,
       threshold=0.01):
-    # assert type(mdp) is MDP
+    _check_mdp(mdp)
     self.p = mdp.transitions
     self.r = mdp.rewards
     self.init_v = init_v.copy()
@@ -240,7 +255,7 @@ class MDVI_Control1(object):
 
 class MDVI_Control2(object):
   def __init__(self, mdp, init_v, init_r_bar, alpha=1.0, beta=1.0):
-    # assert type(mdp) is MDP
+    _check_mdp(mdp)
     self.p = mdp.transitions
     self.r = mdp.rewards
     self.init_v = init_v.copy()
