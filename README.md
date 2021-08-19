@@ -1,6 +1,14 @@
 # differential-value-iteration
 Experiments in creating the ultimate average-reward planning algorithm.
 
+# Prerequisites
+- Install JAX https://github.com/google/jax#installation
+
+Possibly just:
+```
+pip install --upgrade pip
+pip install --upgrade "jax[cpu]"
+```
 # Installation
 - Clone the github repository to a local directory.
 
