@@ -1,8 +1,6 @@
 """Tests for basic ability to import subpackages."""
-from absl.testing import absltest
-
-import jax
 import jax.numpy as jnp
+from absl.testing import absltest
 
 
 class BasicJaxTest(absltest.TestCase):
