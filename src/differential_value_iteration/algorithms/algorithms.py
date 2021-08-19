@@ -1,11 +1,11 @@
 import numpy as np
 
-from differential_value_iteration.environments import MRP, MDP
+# from differential_value_iteration.environments import MRP, MDP
 
 
 class RVI_Evaluation(object):
     def __init__(self, mrp, v, alpha=1.0, ref_idx=0):
-        assert type(mrp) is MRP
+        # assert type(mrp) is MRP
         self.P = mrp.P.copy()
         self.r = mrp.r.copy()
         self.init_v = v.copy()
@@ -31,7 +31,7 @@ class RVI_Evaluation(object):
 
 class RVI_Control(object):
     def __init__(self, mdp, v, alpha=1.0, ref_idx=0):
-        assert type(mdp) is MDP
+        # assert type(mdp) is MDP
         self.P = mdp.P.copy()
         self.r = mdp.r.copy()
         self.init_v = v.copy()
@@ -66,7 +66,7 @@ class RVI_Control(object):
 
 class DVI_Evaluation(object):
     def __init__(self, mrp, init_v, init_r_bar, alpha=1.0, beta=1.0):
-        assert type(mrp) is MRP
+        # assert type(mrp) is MRP
         self.P = mrp.P.copy()
         self.r = mrp.r.copy()
         self.init_v = init_v.copy()
@@ -98,7 +98,7 @@ class DVI_Evaluation(object):
 
 class DVI_Control(object):
     def __init__(self, mdp, init_v, init_r_bar, alpha=1.0, beta=1.0):
-        assert type(mdp) is MDP
+        # assert type(mdp) is MDP
         self.P = mdp.P.copy()
         self.r = mdp.r.copy()
         self.init_v = init_v.copy()
@@ -137,7 +137,7 @@ class DVI_Control(object):
 
 class MDVI_Evaluation(object):
     def __init__(self, mrp, init_v, init_r_bar, alpha=1.0, beta=1.0):
-        assert type(mrp) is MRP
+        # assert type(mrp) is MRP
         self.P = mrp.P.copy()
         self.r = mrp.r.copy()
         self.init_v = init_v.copy()
@@ -171,7 +171,7 @@ class MDVI_Evaluation(object):
 
 class MDVI_Control1(object):
     def __init__(self, mdp, init_v, init_r_bar, alpha=1.0, beta=1.0, threshold=0.01):
-        assert type(mdp) is MDP
+        # assert type(mdp) is MDP
         self.P = mdp.P.copy()
         self.r = mdp.r.copy()
         self.init_v = init_v.copy()
@@ -226,7 +226,7 @@ class MDVI_Control1(object):
 
 class MDVI_Control2(object):
     def __init__(self, mdp, init_v, init_r_bar, alpha=1.0, beta=1.0):
-        assert type(mdp) is MDP
+        # assert type(mdp) is MDP
         self.P = mdp.P.copy()
         self.r = mdp.r.copy()
         self.init_v = init_v.copy()

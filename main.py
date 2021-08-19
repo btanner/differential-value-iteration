@@ -1,4 +1,4 @@
-"""Sample program that runs a dvi algorithm on a sample MDP."""
+"""Sample program that runs a sweep and records results."""
 import numpy as np
 
 from differential_value_iteration.utils import run_alg, draw
@@ -9,8 +9,10 @@ from differential_value_iteration.environments import environments
 
 
 def run():
-	alphas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
-	betas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
+	# alphas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
+	# betas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
+	alphas = [.01]
+	betas = [.01]
 	max_iters = 100000
 	epsilon = 1e-7
 	plots_dir = "plots/"
