@@ -1,6 +1,7 @@
 import numpy as np
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
-
 
 def run_alg(alg, update_rule, max_iters=50000, epsilon=0.0001):
 	if hasattr(alg, update_rule):
