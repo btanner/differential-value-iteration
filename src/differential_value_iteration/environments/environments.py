@@ -30,7 +30,7 @@ class MarkovRewardProcess:
 class MarkovDecisionProcess:
   # |A| x |S| x |S| array of (state, action) -> state transition probabilities.
   transitions: np.ndarray
-  # |A| or |S| vector of rewards for each action.
+  # |A| x |S| vector of rewards for each action.
   rewards: np.ndarray
   name: str
 
