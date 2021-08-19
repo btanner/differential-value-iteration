@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from differential_value_iteration import utils
 from differential_value_iteration.algorithms import algorithms
-from differential_value_iteration.environments import environments
+from differential_value_iteration.environments import micro
 
 
 def run():
@@ -14,7 +14,7 @@ def run():
   epsilon = 1e-7
   plots_dir = "plots/"
   Path(plots_dir).mkdir(parents=True, exist_ok=True)
-  envs = [environments.mrp1, environments.mrp2, environments.mrp3]
+  envs = [micro.mrp1, micro.mrp2, micro.mrp3]
   for env in envs:
     init_v = np.zeros(env.num_states)
     init_r_bar_scalar = 0
@@ -42,7 +42,7 @@ def run():
     utils.draw(results, plots_dir + env.name + '_MDVI_Evaluation_async', alphas,
                betas)
 
-  envs = [environments.mdp2]
+  envs = [micro.mdp2]
   for env in envs:
     init_v = np.zeros(env.num_states)
     init_r_bar_scalar = 0
