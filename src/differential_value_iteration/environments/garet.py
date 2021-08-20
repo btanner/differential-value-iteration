@@ -9,12 +9,14 @@ Instead, it is appropriate for value/policy iteration algorithm research.
 """
 import jax
 import jax.numpy as jnp
+import numpy as np
 from differential_value_iteration.environments import structure
 
 
-def create(rng_key, num_states: int, num_actions: int,
+def create(seed: int, num_states: int, num_actions: int,
     branching_factor: int) -> structure.MarkovDecisionProcess:
   """Creates transition and reward matrices for GARET instance."""
+  rng_key = jax.random.PRNGKey(seed=seed)
   garet_final_shape = (num_states, num_actions, num_states)
   # Keys for branching_factor next state transitions for all (s, a) pairs.
   new_keys = jax.random.split(rng_key, num_states * num_actions + 1)
@@ -85,6 +87,6 @@ def create(rng_key, num_states: int, num_actions: int,
   # Restructure for structure.MarkovDecisionProcess (A, S) vs (S, A).
   reward_matrix_marginalized = jnp.swapaxes(reward_matrix_marginalized, 0, 1)
   return structure.MarkovDecisionProcess(
-      transitions=transition_matrix,
-      rewards=reward_matrix_marginalized,
+      transitions=np.array(transition_matrix),
+      rewards=np.array(reward_matrix_marginalized),
       name=f'GARET S:{num_states} A:{num_actions} B:{branching_factor} K:{rng_key}')

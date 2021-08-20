@@ -8,11 +8,14 @@ from absl import flags
 from differential_value_iteration import utils
 from differential_value_iteration.algorithms import algorithms
 from differential_value_iteration.environments import micro
+from differential_value_iteration.environments import garet
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(name='plot_dir', default='plots', help='path to plot dir')
 flags.DEFINE_integer('max_iters', 100000, 'Maximum iterations per algorithm.')
 flags.DEFINE_float('epsilon', 1e-7, 'Tolerance for convergence.')
+flags.DEFINE_bool('mrp', True, 'Run mrp experiments.')
+flags.DEFINE_bool('mdp', True, 'Run mdp experiments.')
 
 
 def main(argv):
@@ -24,17 +27,18 @@ def main(argv):
   if plot_dir[-1] != '/':
     plot_dir += '/'
   Path(plot_dir).mkdir(parents=True, exist_ok=True)
-  run_mrps(alphas=alphas,
-           betas=betas,
-           max_iters=max_iters,
-           epsilon=epsilon,
-           plot_dir=plot_dir)
-
-  run_mdps(alphas=alphas,
-           betas=betas,
-           max_iters=max_iters,
-           epsilon=epsilon,
-           plot_dir=plot_dir)
+  if FLAGS.mrp:
+    run_mrps(alphas=alphas,
+             betas=betas,
+             max_iters=max_iters,
+             epsilon=epsilon,
+             plot_dir=plot_dir)
+  if FLAGS.mdp:
+    run_mdps(alphas=alphas,
+             betas=betas,
+             max_iters=max_iters,
+             epsilon=epsilon,
+             plot_dir=plot_dir)
 
 
 def run_mrps(alphas: Sequence[float], betas: Sequence[float], max_iters: int,
@@ -71,7 +75,11 @@ def run_mrps(alphas: Sequence[float], betas: Sequence[float], max_iters: int,
 
 def run_mdps(alphas: Sequence[float], betas: Sequence[float], max_iters: int,
     epsilon: float, plot_dir: str):
-  envs = [micro.mdp2]
+  garet_env = garet.create(seed=42,
+                           num_states=10,
+                           num_actions=2,
+                           branching_factor=3)
+  envs = [garet_env, micro.mdp2]
   for env in envs:
     init_v = np.zeros(env.num_states)
     init_r_bar_scalar = 0
