@@ -69,7 +69,6 @@ def create(seed: int, num_states: int, num_actions: int,
     first_dim_indices, next_states_flat.ravel()].set(
       next_state_probs_flat.ravel())
 
-  # print(f'setting {reward_matrix_flat.shape} at [{first_dim_indices.shape}] to {transition_expected_rewards_flat.ravel().shape}')
   reward_matrix_flat = reward_matrix_flat.at[
     first_dim_indices, next_states_flat.ravel()].set(
       transition_expected_rewards_flat.ravel())
@@ -82,7 +81,7 @@ def create(seed: int, num_states: int, num_actions: int,
   reward_matrix_marginalized = jax.vmap(jax.vmap(jnp.dot))(transition_matrix,
                                                            reward_matrix)
 
-  # Restructure for structure.MarkovDecisionProcess (A, S, S) vs (S, A, S).
+  # Restructure for structure.MarkovDecisionProcess (A, S, S') vs (S, A, S').
   transition_matrix = jnp.swapaxes(transition_matrix, 0, 1)
   # Restructure for structure.MarkovDecisionProcess (A, S) vs (S, A).
   reward_matrix_marginalized = jnp.swapaxes(reward_matrix_marginalized, 0, 1)

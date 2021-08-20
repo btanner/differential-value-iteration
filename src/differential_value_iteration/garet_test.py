@@ -17,7 +17,7 @@ class GaretTest(parameterized.TestCase):
       (42, 100, 2, 3),
   )
   def test_create_mdp(self, seed: int, num_states: int, num_actions: int, branching_factor: int):
-    """MarkovDecisionProcess does thorough checks, ensurs no errors raised."""
+    """MarkovDecisionProcess does thorough checks, ensures no errors raised."""
     mdp = garet.create(
         seed=seed,
         num_states=num_states,
