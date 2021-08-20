@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Sequence
 
 import numpy as np
+from absl import app
 from differential_value_iteration import utils
 from differential_value_iteration.algorithms import algorithms
 from differential_value_iteration.environments import micro
@@ -10,7 +11,7 @@ from differential_value_iteration.environments import micro
 _PLOTS_DIR = "plots/"
 
 
-def main():
+def main(argv):
   alphas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
   betas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
   max_iters = 100000
@@ -195,4 +196,4 @@ def exp_MDVI_Control2(env, update_rule, alphas, betas, init_v, init_r_bar,
 
 
 if __name__ == '__main__':
-  main()
+  app.run(main)
