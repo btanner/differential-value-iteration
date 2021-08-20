@@ -1,19 +1,48 @@
 """Sample program that runs a sweep and records results."""
 from pathlib import Path
+from typing import Sequence
 
 import numpy as np
+from absl import app
+from absl import flags
 from differential_value_iteration import utils
 from differential_value_iteration.algorithms import algorithms
 from differential_value_iteration.environments import micro
+from differential_value_iteration.environments import garet
+
+FLAGS = flags.FLAGS
+flags.DEFINE_string(name='plot_dir', default='plots', help='path to plot dir')
+flags.DEFINE_integer('max_iters', 100000, 'Maximum iterations per algorithm.')
+flags.DEFINE_float('epsilon', 1e-7, 'Tolerance for convergence.')
+flags.DEFINE_bool('mrp', True, 'Run mrp experiments.')
+flags.DEFINE_bool('mdp', True, 'Run mdp experiments.')
 
 
-def run():
+def main(argv):
   alphas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
   betas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
-  max_iters = 100000
-  epsilon = 1e-7
-  plots_dir = "plots/"
-  Path(plots_dir).mkdir(parents=True, exist_ok=True)
+  max_iters = FLAGS.max_iters
+  epsilon = FLAGS.epsilon
+  plot_dir = FLAGS.plot_dir
+  if plot_dir[-1] != '/':
+    plot_dir += '/'
+  Path(plot_dir).mkdir(parents=True, exist_ok=True)
+  if FLAGS.mrp:
+    run_mrps(alphas=alphas,
+             betas=betas,
+             max_iters=max_iters,
+             epsilon=epsilon,
+             plot_dir=plot_dir)
+  if FLAGS.mdp:
+    run_mdps(alphas=alphas,
+             betas=betas,
+             max_iters=max_iters,
+             epsilon=epsilon,
+             plot_dir=plot_dir)
+
+
+def run_mrps(alphas: Sequence[float], betas: Sequence[float], max_iters: int,
+    epsilon: float, plot_dir: str):
   envs = [micro.mrp1, micro.mrp2, micro.mrp3]
   for env in envs:
     init_v = np.zeros(env.num_states)
@@ -21,61 +50,69 @@ def run():
     init_r_bar_vec = np.zeros(env.num_states)
     results = exp_RVI_Evaluation(env, 'exec_sync', alphas, init_v, max_iters,
                                  epsilon, ref_idx=0)
-    utils.draw(results, plots_dir + env.name + '_RVI_Evaluation_sync', alphas)
+    utils.draw(results, plot_dir + env.name + '_RVI_Evaluation_sync', alphas)
     results = exp_RVI_Evaluation(env, 'exec_async', alphas, init_v, max_iters,
                                  epsilon, ref_idx=0)
-    utils.draw(results, plots_dir + env.name + '_RVI_Evaluation_async', alphas)
+    utils.draw(results, plot_dir + env.name + '_RVI_Evaluation_async', alphas)
     results = exp_DVI_Evaluation(env, 'exec_sync', alphas, betas, init_v,
                                  init_r_bar_scalar, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_DVI_Evaluation_sync', alphas,
+    utils.draw(results, plot_dir + env.name + '_DVI_Evaluation_sync', alphas,
                betas)
     results = exp_DVI_Evaluation(env, 'exec_async', alphas, betas, init_v,
                                  init_r_bar_scalar, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_DVI_Evaluation_async', alphas,
+    utils.draw(results, plot_dir + env.name + '_DVI_Evaluation_async', alphas,
                betas)
     results = exp_MDVI_Evaluation(env, 'exec_sync', alphas, betas, init_v,
                                   init_r_bar_vec, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_MDVI_Evaluation_sync', alphas,
+    utils.draw(results, plot_dir + env.name + '_MDVI_Evaluation_sync', alphas,
                betas)
     results = exp_MDVI_Evaluation(env, 'exec_async', alphas, betas, init_v,
                                   init_r_bar_vec, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_MDVI_Evaluation_async', alphas,
+    utils.draw(results, plot_dir + env.name + '_MDVI_Evaluation_async',
+               alphas,
                betas)
 
-  envs = [micro.mdp2]
+
+def run_mdps(alphas: Sequence[float], betas: Sequence[float], max_iters: int,
+    epsilon: float, plot_dir: str):
+  garet_env = garet.create(seed=42,
+                           num_states=10,
+                           num_actions=2,
+                           branching_factor=3)
+  envs = [garet_env, micro.mdp2]
   for env in envs:
     init_v = np.zeros(env.num_states)
     init_r_bar_scalar = 0
     init_r_bar_vec = np.zeros(env.num_states)
     results = exp_RVI_Control(env, 'exec_sync', alphas, init_v, max_iters,
                               epsilon, ref_idx=0)
-    utils.draw(results, plots_dir + env.name + '_RVI_Control_sync', alphas)
+    utils.draw(results, plot_dir + env.name + '_RVI_Control_sync', alphas)
     results = exp_RVI_Control(env, 'exec_async', alphas, init_v, max_iters,
                               epsilon, ref_idx=0)
-    utils.draw(results, plots_dir + env.name + '_RVI_Control_async', alphas)
+    utils.draw(results, plot_dir + env.name + '_RVI_Control_async', alphas)
     results = exp_DVI_Control(env, 'exec_sync', alphas, betas, init_v,
                               init_r_bar_scalar, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_DVI_Control_sync', alphas,
+    utils.draw(results, plot_dir + env.name + '_DVI_Control_sync', alphas,
                betas)
     results = exp_DVI_Control(env, 'exec_async', alphas, betas, init_v,
                               init_r_bar_scalar, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_DVI_Control_async', alphas,
+    utils.draw(results, plot_dir + env.name + '_DVI_Control_async', alphas,
                betas)
     results = exp_MDVI_Control1(env, 'exec_sync', alphas, betas, init_v,
                                 init_r_bar_vec, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_MDVI_Control1_sync', alphas,
+    utils.draw(results, plot_dir + env.name + '_MDVI_Control1_sync', alphas,
                betas)
     results = exp_MDVI_Control1(env, 'exec_async', alphas, betas, init_v,
                                 init_r_bar_vec, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_MDVI_Control1_async', alphas,
+    utils.draw(results, plot_dir + env.name + '_MDVI_Control1_async', alphas,
                betas)
     results = exp_MDVI_Control2(env, 'exec_sync', alphas, betas, init_v,
                                 init_r_bar_vec, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_MDVI_Control2_sync', alphas,
+    utils.draw(results, plot_dir + env.name + '_MDVI_Control2_sync', alphas,
                betas)
     results = exp_MDVI_Control2(env, 'exec_async', alphas, betas, init_v,
                                 init_r_bar_vec, max_iters, epsilon)
-    utils.draw(results, plots_dir + env.name + '_MDVI_Control2_async', alphas,
+    utils.draw(results, plot_dir + env.name + '_MDVI_Control2_async', alphas,
                betas)
 
 
@@ -176,4 +213,4 @@ def exp_MDVI_Control2(env, update_rule, alphas, betas, init_v, init_r_bar,
 
 
 if __name__ == '__main__':
-  run()
+  app.run(main)
