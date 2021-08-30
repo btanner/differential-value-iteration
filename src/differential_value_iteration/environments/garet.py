@@ -21,10 +21,7 @@ def create(seed: int, num_states: int, num_actions: int,
   # Keys for branching_factor next state transitions for all (s, a) pairs.
   new_keys = jax.random.split(rng_key, num_states * num_actions + 1)
   new_state_keys = new_keys[1:]
-  # Keys for branching_factor next state rewards for all (s, a) pairs.
-  new_keys = jax.random.split(new_keys[0], num_states * num_actions + 1)
   rng_key = new_keys[0]
-  reward_keys = new_keys[1:]
 
   # For each (s,a) pair, determine next states using jax.random.choice.
   # Use jax.vmap to calculate this in parallel for all (s,a) pairs.
@@ -72,7 +69,6 @@ def create(seed: int, num_states: int, num_actions: int,
   reward_matrix_flat = reward_matrix_flat.at[
     first_dim_indices, next_states_flat.ravel()].set(
       transition_expected_rewards_flat.ravel())
-
 
   transition_matrix = transition_matrix_flat.reshape(garet_final_shape)
   reward_matrix = reward_matrix_flat.reshape(garet_final_shape)
