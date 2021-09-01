@@ -1,5 +1,5 @@
 # differential-value-iteration
-Experiments in creating the ultimate average-reward planning algorithm.
+Experiments with new and existing average-reward planning algorithms.
 
 # Prerequisites
 - Install JAX https://github.com/google/jax#installation
