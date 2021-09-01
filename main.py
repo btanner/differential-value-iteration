@@ -22,6 +22,7 @@ def main(argv):
   alphas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
   betas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
   max_iters = FLAGS.max_iters
+
   epsilon = FLAGS.epsilon
   plot_dir = FLAGS.plot_dir
   if plot_dir[-1] != '/':
