@@ -53,3 +53,20 @@ class Evaluation(algorithm.Evaluation):
     self.current_values[self.index] += self.step_size * change
     self.index = (self.index + 1) % self.mrp.num_states
     return change
+
+class Control:
+  def __init__(
+      self,
+      mdp: structure.MarkovDecisionProcess,
+      STOPPED HERE
+      initial_values: np.ndarray,
+      step_size: float,
+      reference_index: int,
+      synchronized: bool):
+    self.mrp = mrp
+    self.initial_values = initial_values.copy()
+    self.step_size = step_size
+    self.reference_index = reference_index
+    self.index = 0
+    self.synchronized = synchronized
+    self.reset()
