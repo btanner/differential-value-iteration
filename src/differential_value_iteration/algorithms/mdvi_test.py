@@ -1,21 +1,23 @@
 """Tests for basic functioning of M? DVI algorithms."""
-from absl.testing import absltest
-
 import numpy as np
-
+from absl.testing import absltest
+from absl.testing import parameterized
 from differential_value_iteration.algorithms import mdvi
 from differential_value_iteration.environments import micro
 
 
-class MDVITest(absltest.TestCase):
+class MDVITest(parameterized.TestCase):
 
-  def test_mdvi_sync_converges(self):
+  @parameterized.parameters(True, False)
+  def test_mdvi_sync_converges(self, r_bar_scalar: bool):
     environment = micro.mrp1
+    initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
+                                                    0., np.float32)
     algorithm = mdvi.Evaluation(
         mrp=environment,
         step_size=.5,
         beta=.5,
-        initial_r_bar=np.zeros(environment.num_states, dtype=np.float32),
+        initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=np.float32),
         synchronized=True)
 
@@ -23,13 +25,16 @@ class MDVITest(absltest.TestCase):
       changes = algorithm.update()
     self.assertAlmostEqual(np.sum(np.abs(changes)), 0.)
 
-  def test_mdvi_async_converges(self):
+  @parameterized.parameters(True, False)
+  def test_mdvi_async_converges(self, r_bar_scalar: bool):
     environment = micro.mrp1
+    initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
+                                                    0., np.float32)
     algorithm = mdvi.Evaluation(
         mrp=environment,
         step_size=.5,
         beta=.5,
-        initial_r_bar=np.zeros(environment.num_states, dtype=np.float32),
+        initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=np.float32),
         synchronized=False)
 

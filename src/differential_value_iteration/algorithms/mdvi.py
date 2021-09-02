@@ -1,4 +1,5 @@
 """Evaluation and Control implementations of M? Differential Value Iteration."""
+from typing import Union
 
 import numpy as np
 from absl import logging
@@ -11,13 +12,17 @@ class Evaluation(algorithm.Evaluation):
       self,
       mrp: structure.MarkovRewardProcess,
       initial_values: np.ndarray,
-      initial_r_bar: np.ndarray,
+      initial_r_bar: Union[float, np.ndarray],
       step_size: float,
       beta: float,
       synchronized: bool):
     self.mrp = mrp
     self.initial_values = initial_values.copy()
-    self.initial_r_bar = initial_r_bar.copy()
+    if isinstance(initial_r_bar, np.ndarray):
+      self.initial_r_bar = initial_r_bar.copy()
+    else:
+      self.initial_r_bar = np.full(shape=mrp.num_states,
+                                   fill_value=initial_r_bar, dtype=np.float32)
     self.step_size = step_size
     self.beta = beta
     self.index = 0
