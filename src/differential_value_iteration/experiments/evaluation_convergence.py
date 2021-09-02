@@ -65,11 +65,14 @@ def run(environments: Sequence[structure.MarkovRewardProcess],
                                           step_size=step_size,
                                           synchronized=synchronized)
         for i in range(max_iters):
-          changes_sum = 0
+          change_summary = 0.
           for _ in range(inner_loop_range):
             changes = algorithm.update()
-            changes_sum += np.sum(np.abs(changes))
-          if changes_sum<= convergence_tolerance and i > 1:
+            # Mean instead of sum so tolerance scales with num_states.
+            change_summary += np.mean(np.abs(changes))
+          # Basically divide by num_states if running async.
+          change_summary /= inner_loop_range
+          if change_summary<= convergence_tolerance and i > 1:
             converged = True
             break
         print(
