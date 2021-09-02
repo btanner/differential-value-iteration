@@ -5,7 +5,6 @@ different parameters for different algorithms at the moment.
 """
 
 import functools
-from typing import Any
 from typing import Callable
 from typing import Sequence
 
@@ -14,6 +13,7 @@ from absl import app
 from absl import flags
 from differential_value_iteration.algorithms import algorithm
 from differential_value_iteration.algorithms import dvi
+from differential_value_iteration.algorithms import mdvi
 from differential_value_iteration.algorithms import rvi
 from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import structure
@@ -25,7 +25,7 @@ flags.DEFINE_float('maximum_step_size', 1., 'Maximum step size.')
 flags.DEFINE_integer('num_step_sizes', 10, 'Number of step sizes to try.')
 flags.DEFINE_bool('synchronized', True, 'Run algorithms in synchronized mode.')
 
-flags.DEFINE_float('convergence_tolerance', 1e-7, 'Tolerance for convergence.')
+flags.DEFINE_float('convergence_tolerance', 1e-5, 'Tolerance for convergence.')
 
 # DVI-specific flags
 flags.DEFINE_bool('dvi', True, 'Run Differential Value Iteration')
@@ -34,6 +34,13 @@ flags.DEFINE_float('dvi_maximum_beta', 1., 'Maximum DVI beta.')
 flags.DEFINE_integer('dvi_num_betas', 10, 'Number of DVI beta values to try.')
 flags.DEFINE_float('dvi_initial_rbar', 0., 'Initial r_bar for DVI.')
 
+# MDVI-specific flags
+flags.DEFINE_bool('mdvi', True, 'Run M? Differential Value Iteration')
+flags.DEFINE_float('mdvi_minimum_beta', .001, 'Minimum MDVI beta.')
+flags.DEFINE_float('mdvi_maximum_beta', 1., 'Maximum DMVI beta.')
+flags.DEFINE_integer('mdvi_num_betas', 10, 'Number of MDVI beta values to try.')
+flags.DEFINE_float('mdvi_initial_rbar', 0., 'Initial r_bar for MDVI.')
+
 # RVI-specific flags
 flags.DEFINE_bool('rvi', True, 'Run Relative Value Iteration')
 flags.DEFINE_integer('rvi_reference_index', 0, 'Reference index for RVI.')
@@ -41,7 +48,8 @@ flags.DEFINE_integer('rvi_reference_index', 0, 'Reference index for RVI.')
 
 def run(environments: Sequence[structure.MarkovRewardProcess],
     algorithm_constructors: Sequence[Callable[..., algorithm.Evaluation]],
-    step_sizes: Sequence[float], max_iters: int, convergence_tolerance: float, synchronized: bool):
+    step_sizes: Sequence[float], max_iters: int, convergence_tolerance: float,
+    synchronized: bool):
   """Runs a list of algorithms on a list of environments and prints outcomes.
     Params:
       environments: Sequence of Markov Reward Processes to run.
@@ -61,27 +69,27 @@ def run(environments: Sequence[structure.MarkovRewardProcess],
       for step_size in step_sizes:
 
         converged = False
-        algorithm = algorithm_constructor(mrp=environment,
-                                          initial_values=initial_values,
-                                          step_size=step_size,
-                                          synchronized=synchronized)
+        alg = algorithm_constructor(mrp=environment,
+                                    initial_values=initial_values,
+                                    step_size=step_size,
+                                    synchronized=synchronized)
         for i in range(max_iters):
           change_summary = 0.
           for _ in range(inner_loop_range):
-            changes = algorithm.update()
+            changes = alg.update()
             # Mean instead of sum so tolerance scales with num_states.
             change_summary += np.mean(np.abs(changes))
           # Basically divide by num_states if running async.
           change_summary /= inner_loop_range
-          if algorithm.diverged():
+          if alg.diverged():
             converged = False
             break
 
-          if change_summary<= convergence_tolerance and i > 1:
+          if change_summary <= convergence_tolerance and i > 1:
             converged = True
             break
         print(
-          f'step_size:{step_size:.5f}\tConverged:{converged}\tafter {i} iterations\tFinal Changes:{changes}')
+            f'step_size:{step_size:.5f}\tConverged:{converged}\tafter {i} iterations\tFinal Changes:{changes}')
 
 
 def main(argv):
@@ -99,6 +107,16 @@ def main(argv):
       dvi_algorithm = functools.partial(dvi.Evaluation, beta=beta,
                                         initial_r_bar=FLAGS.dvi_initial_rbar)
       algorithm_constructors.append(dvi_algorithm)
+
+  if FLAGS.mdvi:
+    betas = np.geomspace(start=FLAGS.mdvi_minimum_beta,
+                         stop=FLAGS.mdvi_maximum_beta,
+                         num=FLAGS.mdvi_num_betas,
+                         endpoint=True)
+    for beta in betas:
+      mdvi_algorithm = functools.partial(mdvi.Evaluation, beta=beta,
+                                         initial_r_bar=FLAGS.mdvi_initial_rbar)
+      algorithm_constructors.append(mdvi_algorithm)
 
   if FLAGS.rvi:
     rvi_algorithm = functools.partial(rvi.Evaluation,
