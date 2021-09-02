@@ -1,4 +1,4 @@
-"""Evaluation and Control implementations of Relative? Value Iteration."""
+"""Evaluation and Control implementations of Relative Value Iteration."""
 
 import numpy as np
 from differential_value_iteration.environments import structure
