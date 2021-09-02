@@ -1,4 +1,4 @@
-"""Tests for basic functioning of RVI algorithms."""
+"""Tests for basic functioning of DVI algorithms."""
 from absl.testing import absltest
 
 import numpy as np
@@ -7,8 +7,7 @@ from differential_value_iteration.algorithms import dvi
 from differential_value_iteration.environments import micro
 
 
-
-class RVITest(absltest.TestCase):
+class DVITest(absltest.TestCase):
 
   def test_dvi_sync_converges(self):
     environment = micro.mrp1
@@ -24,7 +23,7 @@ class RVITest(absltest.TestCase):
       changes = algorithm.update()
     self.assertAlmostEqual(np.sum(np.abs(changes)), 0.)
 
-  def test_rvi_async_converges(self):
+  def test_dvi_async_converges(self):
     environment = micro.mrp1
     algorithm = dvi.Evaluation(
         mrp=environment,
