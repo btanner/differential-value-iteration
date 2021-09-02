@@ -22,6 +22,7 @@ flags.DEFINE_integer('max_iters', 50000, 'Maximum iterations per algorithm.')
 flags.DEFINE_float('minimum_step_size', .001, 'Minimum step size.')
 flags.DEFINE_float('maximum_step_size', 1., 'Maximum step size.')
 flags.DEFINE_integer('num_step_sizes', 10, 'Number of step sizes to try.')
+flags.DEFINE_bool('synchronized', True, 'Run algorithms in synchronized mode.')
 
 flags.DEFINE_float('convergence_tolerance', 1e-7, 'Tolerance for convergence.')
 
@@ -39,9 +40,21 @@ flags.DEFINE_integer('rvi_reference_index', 0, 'Reference index for RVI.')
 
 def run(environments: Sequence[structure.MarkovRewardProcess],
     algorithm_constructors: Sequence[Callable[..., Any]],
-    step_sizes: Sequence[float], max_iters: int, convergence_tolerance: float):
+    step_sizes: Sequence[float], max_iters: int, convergence_tolerance: float, synchronized: bool):
+  """Runs a list of algorithms on a list of environments and prints outcomes.
+    Params:
+      environments: Sequence of Markov Reward Processes to run.
+      algorithm_constructors: Sequence of Callable algorithm constructors. If an
+        algorithm has hyperparameters, it should have multiple entries in here
+        with hypers preset using functools.partial.
+      step_sizes: Step sizes to try for each algorithm-environment pair.
+      max_iters: Maximum number of iterations before declaring fail to converge.
+      convergence_tolerance: Criteria for convergence.
+      synchronized: Run algorithms in synchronized or asynchronous mode.
+      """
   for environment in environments:
     initial_values = np.zeros(environment.num_states)
+    inner_loop_range = 1 if synchronized else environment.num_states
     for algorithm_constructor in algorithm_constructors:
       print(f'Running {algorithm_constructor} on {environment.name}')
       for step_size in step_sizes:
@@ -50,10 +63,13 @@ def run(environments: Sequence[structure.MarkovRewardProcess],
         algorithm = algorithm_constructor(mrp=environment,
                                           initial_values=initial_values,
                                           step_size=step_size,
-                                          synchronized=True)
+                                          synchronized=synchronized)
         for i in range(max_iters):
-          changes = algorithm.update()
-          if np.sum(np.abs(changes)) <= convergence_tolerance and i > 1:
+          changes_sum = 0
+          for _ in range(inner_loop_range):
+            changes = algorithm.update()
+            changes_sum += np.sum(np.abs(changes))
+          if changes_sum<= convergence_tolerance and i > 1:
             converged = True
             break
         print(
@@ -97,7 +113,8 @@ def main(argv):
       algorithm_constructors=algorithm_constructors,
       step_sizes=step_sizes,
       max_iters=FLAGS.max_iters,
-      convergence_tolerance=FLAGS.convergence_tolerance)
+      convergence_tolerance=FLAGS.convergence_tolerance,
+      synchronized=FLAGS.synchronized)
 
 
 if __name__ == '__main__':
