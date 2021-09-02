@@ -34,7 +34,7 @@ class Evaluation:
     changes = self.mrp.rewards + np.dot(
         self.mrp.transitions,
         self.current_values - self.current_values[self.reference_index]) - self.current_values
-    self.current_values += self.step_size*changes
+    self.current_values += self.step_size * changes
     return changes
 
   def update_async(self):
