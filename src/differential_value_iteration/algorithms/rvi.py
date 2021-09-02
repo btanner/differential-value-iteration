@@ -1,10 +1,13 @@
 """Evaluation and Control implementations of Relative Value Iteration."""
 
+from absl import logging
+
 import numpy as np
+from differential_value_iteration.algorithms import algorithm
 from differential_value_iteration.environments import structure
 
 
-class Evaluation:
+class Evaluation(algorithm.Evaluation):
   def __init__(
       self,
       mrp: structure.MarkovRewardProcess,
@@ -24,11 +27,16 @@ class Evaluation:
   def reset(self):
     self.current_values = self.initial_values.copy()
 
+  def diverged(self)->bool:
+    if not np.isfinite(self.current_values).all():
+      logging.warn('Current values not finite in RVI.')
+      return True
+    return False
+
   def update(self)->np.ndarray:
     if self.synchronized:
       return self.update_sync()
-    else:
-      return self.update_async()
+    return self.update_async()
 
   def update_sync(self):
     changes = self.mrp.rewards + np.dot(

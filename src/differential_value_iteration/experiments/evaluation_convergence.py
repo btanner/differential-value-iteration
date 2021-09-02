@@ -12,6 +12,7 @@ from typing import Sequence
 import numpy as np
 from absl import app
 from absl import flags
+from differential_value_iteration.algorithms import algorithm
 from differential_value_iteration.algorithms import dvi
 from differential_value_iteration.algorithms import rvi
 from differential_value_iteration.environments import micro
@@ -39,7 +40,7 @@ flags.DEFINE_integer('rvi_reference_index', 0, 'Reference index for RVI.')
 
 
 def run(environments: Sequence[structure.MarkovRewardProcess],
-    algorithm_constructors: Sequence[Callable[..., Any]],
+    algorithm_constructors: Sequence[Callable[..., algorithm.Evaluation]],
     step_sizes: Sequence[float], max_iters: int, convergence_tolerance: float, synchronized: bool):
   """Runs a list of algorithms on a list of environments and prints outcomes.
     Params:
@@ -72,6 +73,10 @@ def run(environments: Sequence[structure.MarkovRewardProcess],
             change_summary += np.mean(np.abs(changes))
           # Basically divide by num_states if running async.
           change_summary /= inner_loop_range
+          if algorithm.diverged():
+            converged = False
+            break
+
           if change_summary<= convergence_tolerance and i > 1:
             converged = True
             break

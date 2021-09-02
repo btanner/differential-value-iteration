@@ -1,10 +1,12 @@
 """Evaluation and Control implementations of Differential Value Iteration."""
 
 import numpy as np
+from absl import logging
+from differential_value_iteration.algorithms import algorithm
 from differential_value_iteration.environments import structure
 
 
-class Evaluation:
+class Evaluation(algorithm.Evaluation):
   def __init__(
       self,
       mrp: structure.MarkovRewardProcess,
@@ -27,14 +29,23 @@ class Evaluation:
     #  Be careful, if initial_r_bar is NumPy array this might not work.
     self.r_bar = self.initial_r_bar
 
-  def update(self)->np.ndarray:
+  def diverged(self) -> bool:
+    if not np.isfinite(self.current_values).all():
+      logging.warn('Current values not finite in DVI.')
+      return True
+    if not np.isfinite(self.r_bar):
+      logging.warn('r_bar not finite in DVI.')
+      return True
+    return False
+
+  def update(self) -> np.ndarray:
     if self.synchronized:
       return self.update_sync()
-    else:
-      return self.update_async()
+    return self.update_async()
 
   def update_sync(self):
-    changes = self.mrp.rewards - self.r_bar + np.dot(self.mrp.transitions, self.current_values) - self.current_values
+    changes = self.mrp.rewards - self.r_bar + np.dot(self.mrp.transitions,
+                                                     self.current_values) - self.current_values
     self.current_values += self.step_size * changes
     self.r_bar += self.beta * np.sum(changes)
     return changes
@@ -42,7 +53,7 @@ class Evaluation:
   def update_async(self):
     change = self.mrp.rewards[self.index] - self.r_bar + np.dot(
         self.mrp.transitions[self.index],
-        self.current_values)- self.current_values[self.index]
+        self.current_values) - self.current_values[self.index]
     self.current_values[self.index] += self.step_size * change
     self.r_bar += self.beta * change
     self.index = (self.index + 1) % self.mrp.num_states
