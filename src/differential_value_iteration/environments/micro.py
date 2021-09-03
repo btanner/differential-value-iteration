@@ -2,12 +2,13 @@
 import numpy as np
 from differential_value_iteration.environments import structure
 
+# Exercise 10.7 from http://incompleteideas.net/book/RLbook2020.pdf
 mrp1 = structure.MarkovRewardProcess(
     transitions=np.array([
         [0, 1, 0],
         [0, 0, 1],
         [1, 0, 0]
-    ], dtype=np.float32), rewards=np.array([0, 0, 3], dtype=np.float32),
+    ], dtype=np.float32), rewards=np.array([0, 0, 1], dtype=np.float32),
     name='mrp1')
 
 mrp2 = structure.MarkovRewardProcess(
