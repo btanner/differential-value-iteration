@@ -7,6 +7,7 @@ from differential_value_iteration.environments import structure
 
 
 class Evaluation(algorithm.Evaluation):
+  """Relative Value Iteration for prediction, section 1.1.1 in paper."""
   def __init__(
       self,
       mrp: structure.MarkovRewardProcess,
