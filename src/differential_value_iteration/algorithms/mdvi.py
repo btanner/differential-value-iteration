@@ -1,4 +1,4 @@
-"""Evaluation and Control implementations of M? Differential Value Iteration."""
+"""Evaluation and Control Multichain Differential Value Iteration."""
 from typing import Union
 
 import numpy as np

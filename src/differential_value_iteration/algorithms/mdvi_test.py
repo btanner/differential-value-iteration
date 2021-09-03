@@ -1,4 +1,4 @@
-"""Tests for basic functioning of M? DVI algorithms."""
+"""Tests for basic functioning of Multichain DVI algorithms."""
 import numpy as np
 from absl.testing import absltest
 from absl.testing import parameterized

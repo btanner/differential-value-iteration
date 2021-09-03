@@ -35,7 +35,7 @@ flags.DEFINE_integer('dvi_num_betas', 10, 'Number of DVI beta values to try.')
 flags.DEFINE_float('dvi_initial_rbar', 0., 'Initial r_bar for DVI.')
 
 # MDVI-specific flags
-flags.DEFINE_bool('mdvi', True, 'Run M? Differential Value Iteration')
+flags.DEFINE_bool('mdvi', True, 'Run Multichain Differential Value Iteration')
 flags.DEFINE_float('mdvi_minimum_beta', .001, 'Minimum MDVI beta.')
 flags.DEFINE_float('mdvi_maximum_beta', 1., 'Maximum DMVI beta.')
 flags.DEFINE_integer('mdvi_num_betas', 10, 'Number of MDVI beta values to try.')
