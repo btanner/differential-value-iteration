@@ -46,9 +46,12 @@ flags.DEFINE_bool('rvi', True, 'Run Relative Value Iteration')
 flags.DEFINE_integer('rvi_reference_index', 0, 'Reference index for RVI.')
 
 
-def run(environments: Sequence[structure.MarkovRewardProcess],
+def run(
+    environments: Sequence[structure.MarkovRewardProcess],
     algorithm_constructors: Sequence[Callable[..., algorithm.Evaluation]],
-    step_sizes: Sequence[float], max_iters: int, convergence_tolerance: float,
+    step_sizes: Sequence[float],
+    max_iters: int,
+    convergence_tolerance: float,
     synchronized: bool):
   """Runs a list of algorithms on a list of environments and prints outcomes.
     Params:
