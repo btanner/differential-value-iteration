@@ -21,7 +21,7 @@ class DVITest(absltest.TestCase):
 
     for _ in range(50):
       changes = algorithm.update()
-    self.assertAlmostEqual(np.sum(np.abs(changes)), 0.)
+    self.assertAlmostEqual(np.sum(np.abs(changes)), 0., places=5)
 
   def test_dvi_async_converges(self):
     environment = micro.mrp1
@@ -38,7 +38,7 @@ class DVITest(absltest.TestCase):
       for _ in range(environment.num_states):
         change = algorithm.update()
         change_sum += np.abs(change)
-    self.assertAlmostEqual(change_sum, 0.)
+    self.assertAlmostEqual(change_sum, 0., places=5)
 
 
 if __name__ == '__main__':

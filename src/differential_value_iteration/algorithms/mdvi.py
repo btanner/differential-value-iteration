@@ -8,6 +8,7 @@ from differential_value_iteration.environments import structure
 
 
 class Evaluation(algorithm.Evaluation):
+  """Multichain DVI for prediction, section 3.1.1 in paper."""
   def __init__(
       self,
       mrp: structure.MarkovRewardProcess,
