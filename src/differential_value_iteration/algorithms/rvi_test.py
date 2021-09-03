@@ -1,11 +1,8 @@
 """Tests for basic functioning of RVI algorithms."""
-from absl.testing import absltest
-
 import numpy as np
-
+from absl.testing import absltest
 from differential_value_iteration.algorithms import rvi
 from differential_value_iteration.environments import micro
-
 
 
 class RVITest(absltest.TestCase):
