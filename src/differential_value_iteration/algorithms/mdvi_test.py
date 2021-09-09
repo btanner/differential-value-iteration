@@ -14,7 +14,7 @@ class MDVITest(parameterized.TestCase):
       (False, np.float64),
       (True, np.float64))
   def test_mdvi_sync_converges(self, r_bar_scalar: bool, dtype: np.dtype):
-    tolerance_places = 6 if dtype is np.float32 else 10
+    tolerance_places = 6 if dtype is np.float32 else 8
     environment = micro.create_mrp1(dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
