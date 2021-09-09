@@ -17,17 +17,18 @@ class Evaluation(algorithm.Evaluation):
       beta: float,
       synchronized: bool):
     self.mrp = mrp
-    self.initial_values = initial_values.copy()
-    self.initial_r_bar = initial_r_bar
-    self.step_size = step_size
-    self.beta = beta
+    # Ensure internal value types match environment precision.
+    self.initial_values = initial_values.copy().astype(mrp.rewards.dtype)
+    self.initial_r_bar = mrp.rewards.dtype.type(initial_r_bar)
+    self.step_size = mrp.rewards.dtype.type(step_size)
+    self.beta = mrp.rewards.dtype.type(beta)
+
     self.index = 0
     self.synchronized = synchronized
     self.reset()
 
   def reset(self):
     self.current_values = self.initial_values.copy()
-    #  Be careful, if initial_r_bar is NumPy array this might not work.
     self.r_bar = self.initial_r_bar
 
   def diverged(self) -> bool:
@@ -38,6 +39,9 @@ class Evaluation(algorithm.Evaluation):
       logging.warn('r_bar not finite in DVI.')
       return True
     return False
+
+  def types_ok(self) -> bool:
+    return self.r_bar.dtype == self.mrp.rewards.dtype and self.current_values.dtype == self.mrp.rewards.dtype
 
   def update(self) -> np.ndarray:
     if self.synchronized:

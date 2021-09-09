@@ -22,7 +22,14 @@ class RVITest(parameterized.TestCase):
 
     for _ in range(50):
       changes = algorithm.update()
-    self.assertAlmostEqual(np.sum(np.abs(changes)), 0., places=tolerance_places)
+
+    with self.subTest('did_not_diverge'):
+      self.assertFalse(algorithm.diverged())
+    with self.subTest('maintained_types'):
+      self.assertTrue(algorithm.types_ok())
+    with self.subTest('converged'):
+      self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
+                             places=tolerance_places)
 
   @parameterized.parameters(np.float32, np.float64)
   def test_rvi_async_converges(self, dtype: np.dtype):
@@ -40,7 +47,13 @@ class RVITest(parameterized.TestCase):
       for _ in range(environment.num_states):
         change = algorithm.update()
         change_sum += np.abs(change)
-    self.assertAlmostEqual(change_sum, 0., places=tolerance_places)
+
+    with self.subTest('did_not_diverge'):
+      self.assertFalse(algorithm.diverged())
+    with self.subTest('maintained_types'):
+      self.assertTrue(algorithm.types_ok())
+    with self.subTest('converged'):
+      self.assertAlmostEqual(change_sum, 0., places=tolerance_places)
 
 
 if __name__ == '__main__':

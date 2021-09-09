@@ -17,3 +17,7 @@ class Evaluation(abc.ABC):
   @abc.abstractmethod
   def diverged(self) -> bool:
     """Return true if diverged. Prefer false negative to false positives."""
+
+  @abc.abstractmethod
+  def types_ok(self) -> bool:
+    """Sanity check returns False if something has gone wrong with precision."""

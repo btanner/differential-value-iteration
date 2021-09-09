@@ -24,6 +24,7 @@ _MINIMUM_STEP_SIZE = flags.DEFINE_float('minimum_step_size', .001, 'Minimum step
 _MAXIMUM_STEP_SIZE = flags.DEFINE_float('maximum_step_size', 1., 'Maximum step size.')
 _NUM_STEP_SIZES = flags.DEFINE_integer('num_step_sizes', 10, 'Number of step sizes to try.')
 _SYNCHRONIZED = flags.DEFINE_bool('synchronized', True, 'Run algorithms in synchronized mode.')
+_64bit = flags.DEFINE_bool('64bit', False, 'Use 64 bit precision (default is 32 bit).')
 
 _CONVERGENCE_TOLERANCE = flags.DEFINE_float('convergence_tolerance', 1e-5, 'Tolerance for convergence.')
 
@@ -141,12 +142,14 @@ def main(argv):
       endpoint=True)
 
   environments = []
+  problem_dtype = np.float64 if _64bit.value else np.float32
   if _MRP1.value:
-    environments.append(micro.mrp1)
+    environments.append(micro.create_mrp1(dtype=problem_dtype))
   if _MRP2.value:
-    environments.append(micro.mrp2)
+    environments.append(micro.create_mrp2(dtype=problem_dtype))
   if _MRP3.value:
-    environments.append(micro.mrp3)
+    environments.append(micro.create_mrp3(dtype=problem_dtype))
+
   if not environments:
     raise ValueError('At least one environment required.')
 

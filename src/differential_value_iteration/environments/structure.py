@@ -28,6 +28,9 @@ class MarkovRewardProcess:
     if self.transitions.shape[0] != self.rewards.shape[0]:
       raise ValueError(
           f'mrp transition and reward states do not match: {self.transitions.shape} vs. {self.rewards.shape}')
+    if self.transitions.dtype != self.rewards.dtype:
+      raise ValueError(
+          f'mrp transition and reward dtypes do not match: {self.transitions.dtype.__name__} vs {self.rewards.dtype.__name__}')
 
     # Ensure transition probabilities sum to 1 for all states.
     state_probability_sums = self.transitions.sum(axis=-1)
@@ -69,6 +72,9 @@ class MarkovDecisionProcess:
     if self.transitions.shape[1] != self.rewards.shape[1]:
       raise ValueError(
           f'mdp transition and reward states do not match: {self.transitions.shape} vs. {self.rewards.shape}')
+    if self.transitions.dtype != self.rewards.dtype:
+      raise ValueError(
+          f'mdp transition and reward dtypes do not match: {self.transitions.dtype.__name__} vs {self.rewards.dtype.__name__}')
 
     # Ensure transition probabilities sum to 1 for all actions and states.
     for action_idx, transitions in enumerate(self.transitions):

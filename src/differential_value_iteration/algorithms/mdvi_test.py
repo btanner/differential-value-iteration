@@ -20,15 +20,22 @@ class MDVITest(parameterized.TestCase):
                                                     0., dtype)
     algorithm = mdvi.Evaluation(
         mrp=environment,
-        step_size=.5,
-        beta=.5,
+        step_size=.1,
+        beta=.1,
         initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
 
-    for _ in range(50):
+    for _ in range(250):
       changes = algorithm.update()
-    self.assertAlmostEqual(np.sum(np.abs(changes)), 0., places=tolerance_places)
+
+    with self.subTest('did_not_diverge'):
+      self.assertFalse(algorithm.diverged())
+    with self.subTest('maintained_types'):
+      self.assertTrue(algorithm.types_ok())
+    with self.subTest('converged'):
+      self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
+                             places=tolerance_places)
 
   @parameterized.parameters(
       (False, np.float32),
@@ -53,8 +60,13 @@ class MDVITest(parameterized.TestCase):
       for _ in range(environment.num_states):
         change = algorithm.update()
         change_sum += np.abs(change)
-    # This never goes all the way to 0.
-    self.assertAlmostEqual(change_sum, 0., places=tolerance_places)
+
+    with self.subTest('did_not_diverge'):
+      self.assertFalse(algorithm.diverged())
+    with self.subTest('maintained_types'):
+      self.assertTrue(algorithm.types_ok())
+    with self.subTest('converged'):
+      self.assertAlmostEqual(change_sum, 0., places=tolerance_places)
 
 
 if __name__ == '__main__':

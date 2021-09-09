@@ -49,7 +49,11 @@ def run_mrps(
     max_iters: int,
     epsilon: float,
     plot_dir: str):
-  envs = [micro.mrp1, micro.mrp2, micro.mrp3]
+  envs = [
+      micro.create_mrp1(dtype=np.float32),
+      micro.create_mrp2(dtype=np.float32),
+      micro.create_mrp3(dtype=np.float32),
+  ]
   for env in envs:
     init_v = np.zeros(env.num_states)
     init_r_bar_scalar = 0
