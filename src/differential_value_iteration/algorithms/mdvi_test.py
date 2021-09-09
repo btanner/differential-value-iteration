@@ -23,7 +23,7 @@ class MDVITest(parameterized.TestCase):
 
     for _ in range(50):
       changes = algorithm.update()
-    self.assertAlmostEqual(np.sum(np.abs(changes)), 0., places=5)
+    self.assertAlmostEqual(np.sum(np.abs(changes)), 0., places=7)
 
   @parameterized.parameters(True, False)
   def test_mdvi_async_converges(self, r_bar_scalar: bool):
@@ -44,7 +44,7 @@ class MDVITest(parameterized.TestCase):
         change = algorithm.update()
         change_sum += np.abs(change)
     # This never goes all the way to 0.
-    self.assertAlmostEqual(change_sum, 0., places=5)
+    self.assertAlmostEqual(change_sum, 0., places=7)
 
 
 if __name__ == '__main__':

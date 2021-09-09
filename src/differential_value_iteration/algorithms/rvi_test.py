@@ -18,7 +18,7 @@ class RVITest(absltest.TestCase):
 
     for _ in range(50):
       changes = algorithm.update()
-    self.assertAlmostEqual(np.sum(np.abs(changes)), 0., places=5)
+    self.assertAlmostEqual(np.sum(np.abs(changes)), 0., places=7)
 
   def test_rvi_async_converges(self):
     environment = micro.mrp1
@@ -34,7 +34,7 @@ class RVITest(absltest.TestCase):
       for _ in range(environment.num_states):
         change = algorithm.update()
         change_sum += np.abs(change)
-    self.assertAlmostEqual(change_sum, 0., places=5)
+    self.assertAlmostEqual(change_sum, 0., places=7)
 
 
 if __name__ == '__main__':
