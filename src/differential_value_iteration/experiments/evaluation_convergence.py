@@ -19,13 +19,13 @@ from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import structure
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('max_iters', 50000, 'Maximum iterations per algorithm.')
-flags.DEFINE_float('minimum_step_size', .001, 'Minimum step size.')
-flags.DEFINE_float('maximum_step_size', 1., 'Maximum step size.')
-flags.DEFINE_integer('num_step_sizes', 10, 'Number of step sizes to try.')
-flags.DEFINE_bool('synchronized', True, 'Run algorithms in synchronized mode.')
+_MAX_ITERS = flags.DEFINE_integer('max_iters', 50000, 'Maximum iterations per algorithm.')
+_MINIMUM_STEP_SIZE = flags.DEFINE_float('minimum_step_size', .001, 'Minimum step size.')
+_MAXIMUM_STEP_SIZE = flags.DEFINE_float('maximum_step_size', 1., 'Maximum step size.')
+_NUM_STEP_SIZES = flags.DEFINE_integer('num_step_sizes', 10, 'Number of step sizes to try.')
+_SYNCHRONIZED = flags.DEFINE_bool('synchronized', True, 'Run algorithms in synchronized mode.')
 
-flags.DEFINE_float('convergence_tolerance', 1e-5, 'Tolerance for convergence.')
+_CONVERGENCE_TOLERANCE = flags.DEFINE_float('convergence_tolerance', 1e-5, 'Tolerance for convergence.')
 
 # DVI-specific flags
 flags.DEFINE_bool('dvi', True, 'Run Differential Value Iteration')
@@ -45,6 +45,10 @@ flags.DEFINE_float('mdvi_initial_rbar', 0., 'Initial r_bar for MDVI.')
 flags.DEFINE_bool('rvi', True, 'Run Relative Value Iteration')
 flags.DEFINE_integer('rvi_reference_index', 0, 'Reference index for RVI.')
 
+# Environment flags
+_MRP1 = flags.DEFINE_bool('mrp1', True, 'Include MRP1 in evaluation.')
+_MRP2 = flags.DEFINE_bool('mrp2', True, 'Include MRP2 in evaluation.')
+_MRP3 = flags.DEFINE_bool('mrp3', True, 'Include MRP3 in evaluation.')
 
 def run(
     environments: Sequence[structure.MarkovRewardProcess],
@@ -131,19 +135,27 @@ def main(argv):
 
   # Generate stepsizes log-spaced minimum and maximum supplied.
   step_sizes = np.geomspace(
-      start=FLAGS.minimum_step_size,
-      stop=FLAGS.maximum_step_size,
-      num=FLAGS.num_step_sizes,
+      start=_MINIMUM_STEP_SIZE.value,
+      stop=_MAXIMUM_STEP_SIZE.value,
+      num=_NUM_STEP_SIZES.value,
       endpoint=True)
 
-  environments = [micro.mrp1, micro.mrp2, micro.mrp3]
+  environments = []
+  if _MRP1.value:
+    environments.append(micro.mrp1)
+  if _MRP2.value:
+    environments.append(micro.mrp2)
+  if _MRP3.value:
+    environments.append(micro.mrp3)
+  if not environments:
+    raise ValueError('At least one environment required.')
 
   run(environments=environments,
       algorithm_constructors=algorithm_constructors,
       step_sizes=step_sizes,
-      max_iters=FLAGS.max_iters,
-      convergence_tolerance=FLAGS.convergence_tolerance,
-      synchronized=FLAGS.synchronized)
+      max_iters=_MAX_ITERS.value,
+      convergence_tolerance=_CONVERGENCE_TOLERANCE.value,
+      synchronized=_SYNCHRONIZED.value)
 
 
 if __name__ == '__main__':
