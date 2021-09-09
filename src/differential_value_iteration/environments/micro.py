@@ -1,15 +1,19 @@
-
 import numpy as np
 from differential_value_iteration.environments import structure
 
+
+def create_mrp1(dtype: np.dtype):
+  return structure.MarkovRewardProcess(
+      transitions=np.array([
+          [0, 1, 0],
+          [0, 0, 1],
+          [1, 0, 0]
+      ], dtype=dtype), rewards=np.array([0, 0, 1], dtype=dtype),
+      name='mrp1')
+
+
 # Exercise 10.7 from http://incompleteideas.net/book/RLbook2020.pdf
-mrp1 = structure.MarkovRewardProcess(
-    transitions=np.array([
-        [0, 1, 0],
-        [0, 0, 1],
-        [1, 0, 0]
-    ], dtype=np.float32), rewards=np.array([0, 0, 1], dtype=np.float32),
-    name='mrp1')
+mrp1 = create_mrp1(np.float32)
 
 mrp2 = structure.MarkovRewardProcess(
     transitions=np.array([
