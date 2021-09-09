@@ -55,7 +55,7 @@ class Evaluation(algorithm.Evaluation):
     changes = self.mrp.rewards - self.r_bar + np.dot(self.mrp.transitions,
                                                      self.current_values) - self.current_values
     self.current_values += self.step_size * changes
-    self.r_bar += self.beta * np.sum(changes)
+    self.r_bar += self.beta * changes
     return changes
 
   def update_async(self):
