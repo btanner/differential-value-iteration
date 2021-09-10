@@ -1,21 +1,29 @@
 """Tests for basic functioning of Multichain DVI algorithms."""
+import itertools
+from typing import Callable
+
 import numpy as np
 from absl.testing import absltest
 from absl.testing import parameterized
 from differential_value_iteration.algorithms import mdvi
 from differential_value_iteration.environments import micro
+from differential_value_iteration.environments import structure
 
 
 class MDVITest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (False, np.float32),
-      (True, np.float32),
-      (False, np.float64),
-      (True, np.float64))
-  def test_mdvi_sync_converges(self, r_bar_scalar: bool, dtype: np.dtype):
-    tolerance_places = 6 if dtype is np.float32 else 8
-    environment = micro.create_mrp1(dtype)
+  @parameterized.parameters(itertools.product(
+      (micro.create_mrp1, micro.create_mrp2),
+      (False, True),
+      (np.float32, np.float64)))
+  def test_mdvi_sync_converges(self,
+      env_constructor: Callable[[np.dtype], structure.MarkovRewardProcess],
+      r_bar_scalar: bool, dtype: np.dtype):
+    if dtype == np.float64:
+      tolerance_places = 8
+    else:
+      tolerance_places = 4 if env_constructor == micro.create_mrp2 else 6
+    environment = env_constructor(dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
     algorithm = mdvi.Evaluation(
@@ -38,10 +46,7 @@ class MDVITest(parameterized.TestCase):
                              places=tolerance_places)
 
   @parameterized.parameters(
-      (False, np.float32),
-      (True, np.float32),
-      (False, np.float64),
-      (True, np.float64))
+      itertools.product((False, True), (np.float32, np.float64)))
   def test_mdvi_async_converges(self, r_bar_scalar: bool, dtype: np.dtype):
     tolerance_places = 6 if dtype is np.float32 else 7
     environment = micro.create_mrp1(dtype)

@@ -35,8 +35,8 @@ def create_mrp2(dtype: np.dtype):
           [0, .9, .1, 0],
           [.1, 0, .9, 0],
           [.9, .1, 0, 0],
-          [0, 0, 0, 1]], dtype=np.float32),
-      rewards=np.array([0, 1, 8, 20], dtype=np.float32),
+          [0, 0, 0, 1]], dtype=dtype),
+      rewards=np.array([0, 1, 8, 20], dtype=dtype),
       name=f'mrp2 ({dtype.__name__})')
 
 
@@ -52,8 +52,8 @@ def create_mrp3(dtype: np.dtype):
   return structure.MarkovRewardProcess(
       transitions=np.array([
           [.2, .8],
-          [.2, .8]], dtype=np.float32),
-      rewards=np.array([1, 1], dtype=np.float32),
+          [.2, .8]], dtype=dtype),
+      rewards=np.array([1, 1], dtype=dtype),
       name=f'mrp3 ({dtype.__name__})')
 
 
