@@ -55,7 +55,7 @@ class MDVITest(parameterized.TestCase):
     if dtype == np.float64:
       tolerance_places = 8
     else:
-      tolerance_places = 6 if env_constructor == micro.create_mrp2 else 6
+      tolerance_places = 4 if env_constructor == micro.create_mrp2 else 6
     environment = env_constructor(dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
