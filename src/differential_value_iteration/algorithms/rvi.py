@@ -16,8 +16,9 @@ class Evaluation(algorithm.Evaluation):
       reference_index: int,
       synchronized: bool):
     self.mrp = mrp
-    self.initial_values = initial_values.copy()
-    self.step_size = step_size
+    # Ensure internal value types match environment precision.
+    self.initial_values = initial_values.copy().astype(mrp.rewards.dtype)
+    self.step_size = mrp.rewards.dtype.type(step_size)
     self.reference_index = reference_index
     self.index = 0
     self.synchronized = synchronized
@@ -31,6 +32,9 @@ class Evaluation(algorithm.Evaluation):
       logging.warn('Current values not finite in RVI.')
       return True
     return False
+
+  def types_ok(self) -> bool:
+    return self.current_values.dtype == self.mrp.rewards.dtype
 
   def update(self) -> np.ndarray:
     if self.synchronized:
