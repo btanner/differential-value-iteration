@@ -7,8 +7,8 @@ from absl import app
 from absl import flags
 from differential_value_iteration import utils
 from differential_value_iteration.algorithms import algorithms
-from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import garet
+from differential_value_iteration.environments import micro
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(name='plot_dir', default='plots', help='path to plot dir')
@@ -19,6 +19,7 @@ flags.DEFINE_bool('mdp', True, 'Run mdp experiments.')
 
 
 def main(argv):
+  del argv
   alphas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
   betas = [1.0, 0.999, 0.99, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01, 0.001]
   max_iters = FLAGS.max_iters
@@ -42,9 +43,17 @@ def main(argv):
              plot_dir=plot_dir)
 
 
-def run_mrps(alphas: Sequence[float], betas: Sequence[float], max_iters: int,
-    epsilon: float, plot_dir: str):
-  envs = [micro.mrp1, micro.mrp2, micro.mrp3]
+def run_mrps(
+    alphas: Sequence[float],
+    betas: Sequence[float],
+    max_iters: int,
+    epsilon: float,
+    plot_dir: str):
+  envs = [
+      micro.create_mrp1(dtype=np.float32),
+      micro.create_mrp2(dtype=np.float32),
+      micro.create_mrp3(dtype=np.float32),
+  ]
   for env in envs:
     init_v = np.zeros(env.num_states)
     init_r_bar_scalar = 0

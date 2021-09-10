@@ -17,8 +17,7 @@ class DifferentialValueIterationTest(absltest.TestCase):
     self.assertTrue(algorithms.MDVI_Control2)
 
   def test_environments_package_import(self):
-    self.assertTrue(micro.mrp1)
-    self.assertTrue(micro.mrp2)
+    self.assertTrue(micro.create_mrp1)
     self.assertTrue(micro.mdp1)
     self.assertTrue(micro.mdp2)
 

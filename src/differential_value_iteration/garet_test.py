@@ -1,9 +1,7 @@
 """Tests GARET MDP environment generator."""
-import jax
 from absl.testing import absltest
 from absl.testing import parameterized
 
-from differential_value_iteration.algorithms import algorithms
 from differential_value_iteration.environments import garet
 
 
