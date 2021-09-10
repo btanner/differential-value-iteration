@@ -76,7 +76,7 @@ class Evaluation(algorithm.Evaluation):
     return change
 
 
-class Control(algorithm.Evaluation):
+class Control1(algorithm.Evaluation):
   """Multichain DVI for prediction, section 3.1.1 in paper."""
 
   def __init__(
@@ -131,48 +131,58 @@ class Control(algorithm.Evaluation):
       return self.update_sync()
     return self.update_async()
 
+  # def update_sync_orig(self) -> np.ndarray:
+  #   temp_s_by_a = np.zeros((self.mdp.num_states, self.mdp.num_actions), dtype=self.mdp.rewards.dtype)
+  #   for a in range(self.mdp.num_actions):
+  #     temp_s_by_a[:, a] = np.dot(self.mdp.transitions[a], self.r_bar)
+  #   self.r_bar = np.max(temp_s_by_a, axis=1)
+  #   delta = np.zeros(self.mdp.num_states, dtype=self.mdp.rewards.dtype)
+  #   for s in range(self.mdp.num_states):
+  #     max_actions = np.where(temp_s_by_a[s] > self.r_bar[s] - self.threshold)[0]
+  #     temp_a = np.zeros(len(max_actions), dtype=self.mdp.rewards.dtype)
+  #     for i in range(len(max_actions)):
+  #       temp_a[i] = self.mdp.rewards[max_actions[i]][s] - self.r_bar[s] + np.dot(
+  #           self.mdp.transitions[max_actions[i]][s], self.current_values) - self.current_values[s]
+  #     delta[s] = np.max(temp_a)
+  #   self.current_values += self.step_size * delta
+  #   self.r_bar += self.beta * delta
+  #   return delta
+
   def update_sync(self) -> np.ndarray:
-    temp_s_by_a = np.zeros((self.mdp.num_states, self.mdp.num_actions), dtype=self.mdp.rewards.dtype)
-    for a in range(self.mdp.num_actions):
-      temp_s_by_a[:, a] = np.dot(self.mdp.transitions[a], self.r_bar)
-    self.r_bar = np.max(temp_s_by_a, axis=1)
-    delta = np.zeros(self.mdp.num_states, dtype=self.mdp.rewards.dtype)
-    for s in range(self.mdp.num_states):
-      max_actions = np.where(temp_s_by_a[s] > self.r_bar[s] - self.threshold)[0]
-      temp_a = np.zeros(len(max_actions), dtype=self.mdp.rewards.dtype)
-      for i in range(len(max_actions)):
-        temp_a[i] = self.mdp.rewards[max_actions[i]][s] - self.r_bar[s] + np.dot(
-            self.mdp.transitions[max_actions[i]][s], self.current_values) - self.current_values[s]
-      delta[s] = np.max(temp_a)
-    self.current_values += self.step_size * delta
-    self.r_bar += self.beta * delta
-    return delta
+    temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar)
+    self.r_bar = np.max(temp_s_by_a, axis=0)
+    changes = np.zeros(self.mdp.num_states, dtype=self.mdp.rewards.dtype)
+    for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), self.r_bar):
+      max_actions = np.where(action_vals > r_bar_s - self.threshold)[0]
+      temp_a = self.mdp.rewards[max_actions, :] - r_bar_s + np.dot(self.mdp.transitions[max_actions, s], self.current_values)-self.current_values[s]
+      changes[s] = np.max(temp_a)
+    self.current_values += self.step_size * changes
+    self.r_bar += self.beta * changes
+    return changes
+
+  # def update_async_orig(self) -> np.ndarray:
+  #   temp_a = np.zeros(self.mdp.num_actions, self.mdp.rewards.dtype)
+  #   for a in range(self.mdp.num_actions):
+  #     temp_a[a] = np.dot(self.mdp.transitions[a][self.index], self.r_bar)
+  #   self.r_bar[self.index] = np.max(temp_a)
+  #   max_actions = np.where(temp_a > self.r_bar[self.index] - self.threshold)[0]
+  #   temp_a = np.zeros(len(max_actions), dtype=self.mdp.rewards.dtype)
+  #   for i in range(len(max_actions)):
+  #     temp_a[i] = self.mdp.rewards[max_actions[i]][self.index] - self.r_bar[self.index] + np.dot(
+  #         self.mdp.transitions[max_actions[i]][self.index], self.current_values) - self.current_values[self.index]
+  #   delta = np.max(temp_a)
+  #   self.current_values[self.index] += self.step_size * delta
+  #   self.r_bar[self.index] += self.beta * delta
+  #   self.index = (self.index + 1) % self.mdp.num_states
+  #   return delta
 
   def update_async(self) -> np.ndarray:
-    temp_a = np.zeros(self.mdp.num_actions, self.mdp.rewards.dtype)
-    for a in range(self.mdp.num_actions):
-      temp_a[a] = np.dot(self.mdp.transitions[a][self.index], self.r_bar)
+    temp_a = np.dot(self.mdp.transitions[:, self.index], self.r_bar)
     self.r_bar[self.index] = np.max(temp_a)
     max_actions = np.where(temp_a > self.r_bar[self.index] - self.threshold)[0]
-    temp_a = np.zeros(len(max_actions), dtype=self.mdp.rewards.dtype)
-    for i in range(len(max_actions)):
-      temp_a[i] = self.mdp.rewards[max_actions[i]][self.index] - self.r_bar[self.index] + np.dot(
-          self.mdp.transitions[max_actions[i]][self.index], self.current_values) - self.current_values[self.index]
-    delta = np.max(temp_a)
-    self.current_values[self.index] += self.step_size * delta
-    self.r_bar[self.index] += self.beta * delta
+    temp_a = self.mdp.rewards[max_actions, self.index] - self.r_bar[self.index] + np.dot(self.mdp.transitions[max_actions, self.index], self.current_values) - self.current_values[self.index]
+    change = np.max(temp_a)
+    self.current_values[self.index] += self.step_size * change
+    self.r_bar[self.index] += self.beta * change
     self.index = (self.index + 1) % self.mdp.num_states
-    return delta
-
-
-
-
-  # self.r_bar[self.index] = np.dot(self.mrp.transitions[self.index],
-    #                                 self.r_bar)
-    # change = self.mrp.rewards[self.index] - self.r_bar[self.index] + np.dot(
-    #     self.mrp.transitions[self.index],
-    #     self.current_values) - self.current_values[self.index]
-    # self.current_values[self.index] += self.step_size * change
-    # self.r_bar[self.index] += self.beta * change
-    # self.index = (self.index + 1) % self.mrp.num_states
-    # return change
+    return change

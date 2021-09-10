@@ -95,7 +95,7 @@ class MDVIControlTest(parameterized.TestCase):
     environment = mdp_constructor(dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
-    algorithm = mdvi.Control(
+    algorithm = mdvi.Control1(
         mdp=environment,
         step_size=.1,
         beta=.1,
@@ -129,7 +129,7 @@ class MDVIControlTest(parameterized.TestCase):
     environment = mdp_constructor(dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
-    algorithm = mdvi.Control(
+    algorithm = mdvi.Control1(
         mdp=environment,
         step_size=.1,
         beta=.1,
