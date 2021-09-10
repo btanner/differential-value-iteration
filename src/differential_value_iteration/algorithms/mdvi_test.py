@@ -45,22 +45,29 @@ class MDVITest(parameterized.TestCase):
       self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
                              places=tolerance_places)
 
-  @parameterized.parameters(
-      itertools.product((False, True), (np.float32, np.float64)))
-  def test_mdvi_async_converges(self, r_bar_scalar: bool, dtype: np.dtype):
-    tolerance_places = 6 if dtype is np.float32 else 7
-    environment = micro.create_mrp1(dtype)
+  @parameterized.parameters(itertools.product(
+      (micro.create_mrp1, micro.create_mrp2),
+      (False, True),
+      (np.float32, np.float64)))
+  def test_mdvi_async_converges(self,
+      env_constructor: Callable[[np.dtype], structure.MarkovRewardProcess],
+      r_bar_scalar: bool, dtype: np.dtype):
+    if dtype == np.float64:
+      tolerance_places = 8
+    else:
+      tolerance_places = 6 if env_constructor == micro.create_mrp2 else 6
+    environment = env_constructor(dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
     algorithm = mdvi.Evaluation(
         mrp=environment,
-        step_size=.15,
-        beta=.15,
+        step_size=.1,
+        beta=.1,
         initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
 
-    for _ in range(75):
+    for _ in range(250):
       change_sum = 0.
       for _ in range(environment.num_states):
         change = algorithm.update()
