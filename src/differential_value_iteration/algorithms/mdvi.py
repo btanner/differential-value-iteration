@@ -71,6 +71,6 @@ class Evaluation(algorithm.Evaluation):
         self.mrp.transitions[self.index],
         self.current_values) - self.current_values[self.index]
     self.current_values[self.index] += self.step_size * change
-    self.r_bar += self.beta * change
+    self.r_bar[self.index] += self.beta * change
     self.index = (self.index + 1) % self.mrp.num_states
     return change
