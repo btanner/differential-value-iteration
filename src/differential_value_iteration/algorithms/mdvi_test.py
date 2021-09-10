@@ -153,5 +153,79 @@ class MDVIControlTest(parameterized.TestCase):
       self.assertTrue(algorithm.types_ok())
     with self.subTest('converged'):
       self.assertAlmostEqual(change_sum, 0., places=tolerance_places)
+
+  @parameterized.parameters(itertools.product(
+      (micro.create_mdp1, micro.create_mdp2,),
+      (False, True),
+      (np.float32, np.float64)))
+  def test_mdvi_sync_new_version_matches(self,
+      mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
+      r_bar_scalar: bool, dtype: np.dtype):
+    tolerance_places = 8 if dtype == np.float64 else 5
+    environment = mdp_constructor(dtype)
+    initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
+                                                    0., dtype)
+    algorithm_orig = mdvi.Control1(
+        mdp=environment,
+        step_size=.1,
+        beta=.1,
+        threshold=.01,
+        initial_r_bar=initial_r_bar,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=True)
+    algorithm_vector = mdvi.Control1(
+        mdp=environment,
+        step_size=.1,
+        beta=.1,
+        threshold=.01,
+        initial_r_bar=initial_r_bar,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=True)
+
+
+    for _ in range(250):
+      changes_orig = algorithm_orig.update_orig()
+      changes = algorithm_vector.update()
+      np.testing.assert_allclose(changes_orig, changes)
+
+  @parameterized.parameters(itertools.product(
+      (micro.create_mdp1, micro.create_mdp2,),
+      (False, True),
+      (np.float32, np.float64)))
+  def test_mdvi_async_new_version_matches(self,
+      mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
+      r_bar_scalar: bool, dtype: np.dtype):
+    tolerance_places = 8 if dtype == np.float64 else 5
+    environment = mdp_constructor(dtype)
+    initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
+                                                    0., dtype)
+    algorithm_orig = mdvi.Control1(
+        mdp=environment,
+        step_size=.1,
+        beta=.1,
+        threshold=.01,
+        initial_r_bar=initial_r_bar,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=False)
+    algorithm_vector = mdvi.Control1(
+        mdp=environment,
+        step_size=.1,
+        beta=.1,
+        threshold=.01,
+        initial_r_bar=initial_r_bar,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=False)
+
+
+    for _ in range(250):
+      change_orig_sum = 0.
+      change_new_sum = 0.
+      for _ in range(environment.num_states):
+        change_orig = algorithm_orig.update_orig()
+        change_orig_sum += np.abs(change_orig)
+        change_new = algorithm_vector.update()
+        change_new_sum += np.abs(change_new)
+      np.testing.assert_allclose(change_orig_sum, change_new_sum)
+
 if __name__ == '__main__':
   absltest.main()
