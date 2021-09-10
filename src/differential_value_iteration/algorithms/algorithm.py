@@ -3,7 +3,6 @@ import abc
 
 import numpy as np
 
-
 class Evaluation(abc.ABC):
 
   @abc.abstractmethod

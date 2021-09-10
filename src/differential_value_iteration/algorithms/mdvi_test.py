@@ -17,13 +17,13 @@ class MDVITest(parameterized.TestCase):
       (False, True),
       (np.float32, np.float64)))
   def test_mdvi_sync_converges(self,
-      env_constructor: Callable[[np.dtype], structure.MarkovRewardProcess],
+      mrp_constructor: Callable[[np.dtype], structure.MarkovRewardProcess],
       r_bar_scalar: bool, dtype: np.dtype):
     if dtype == np.float64:
       tolerance_places = 8
     else:
-      tolerance_places = 4 if env_constructor == micro.create_mrp2 else 6
-    environment = env_constructor(dtype)
+      tolerance_places = 4 if mrp_constructor == micro.create_mrp2 else 6
+    environment = mrp_constructor(dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
     algorithm = mdvi.Evaluation(
@@ -50,13 +50,13 @@ class MDVITest(parameterized.TestCase):
       (False, True),
       (np.float32, np.float64)))
   def test_mdvi_async_converges(self,
-      env_constructor: Callable[[np.dtype], structure.MarkovRewardProcess],
+      mrp_constructor: Callable[[np.dtype], structure.MarkovRewardProcess],
       r_bar_scalar: bool, dtype: np.dtype):
     if dtype == np.float64:
       tolerance_places = 8
     else:
       tolerance_places = 4 if env_constructor == micro.create_mrp2 else 6
-    environment = env_constructor(dtype)
+    environment = mrp_constructor(dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
     algorithm = mdvi.Evaluation(
