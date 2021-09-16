@@ -74,3 +74,6 @@ class Evaluation(algorithm.Evaluation):
     self.r_bar[self.index] += self.beta * change
     self.index = (self.index + 1) % self.mrp.num_states
     return change
+
+  def get_estimates(self):
+    return {'v': self.current_values, 'r_bar': self.r_bar}

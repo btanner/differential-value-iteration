@@ -9,6 +9,7 @@ from typing import Callable
 from typing import Sequence
 
 import numpy as np
+import time
 from absl import app
 from absl import flags
 from differential_value_iteration.algorithms import algorithm
@@ -51,13 +52,17 @@ _MRP1 = flags.DEFINE_bool('mrp1', True, 'Include MRP1 in evaluation.')
 _MRP2 = flags.DEFINE_bool('mrp2', True, 'Include MRP2 in evaluation.')
 _MRP3 = flags.DEFINE_bool('mrp3', True, 'Include MRP3 in evaluation.')
 
+# Debugging flags
+_SAVE_FINAL_ESTIMATES = flags.DEFINE_bool('save_final_estimates', False, 'Save the final estimates.')
+
 def run(
     environments: Sequence[structure.MarkovRewardProcess],
     algorithm_constructors: Sequence[Callable[..., algorithm.Evaluation]],
     step_sizes: Sequence[float],
     max_iters: int,
     convergence_tolerance: float,
-    synchronized: bool):
+    synchronized: bool,
+    save_final_estimates: bool):
   """Runs a list of algorithms on a list of environments and prints outcomes.
     Params:
       environments: Sequence of Markov Reward Processes to run.
@@ -68,6 +73,7 @@ def run(
       max_iters: Maximum number of iterations before declaring fail to converge.
       convergence_tolerance: Criteria for convergence.
       synchronized: Run algorithms in synchronized or asynchronous mode.
+      save_final_estimates: Save the final (dictionary of) estimates to a file
       """
   for environment in environments:
     initial_values = np.zeros(environment.num_states)
@@ -98,6 +104,15 @@ def run(
             break
         print(
             f'step_size:{step_size:.5f}\tConverged:{converged}\tafter {i} iterations\tFinal Changes:{changes}')
+        if save_final_estimates:
+            estimates = alg.get_estimates()
+            # is there a simple way of making the filename more accessible?
+            # filename = f'results/{environment.__name__}_{alg.__name__}_{step_size}'
+            filename = str(time.time())
+            full_path = 'results/' + filename   # directory can be a command-line argument as well
+            np.save(full_path, estimates)
+            # we can also save a string with the above convergence details
+            print(f'Results saved in: {full_path}')
 
 
 def main(argv):
@@ -158,7 +173,8 @@ def main(argv):
       step_sizes=step_sizes,
       max_iters=_MAX_ITERS.value,
       convergence_tolerance=_CONVERGENCE_TOLERANCE.value,
-      synchronized=_SYNCHRONIZED.value)
+      synchronized=_SYNCHRONIZED.value,
+      save_final_estimates=_SAVE_FINAL_ESTIMATES.value)
 
 
 if __name__ == '__main__':

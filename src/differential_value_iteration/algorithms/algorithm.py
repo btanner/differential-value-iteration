@@ -2,6 +2,7 @@
 import abc
 
 import numpy as np
+from typing import Dict, Union
 
 
 class Evaluation(abc.ABC):
@@ -21,3 +22,7 @@ class Evaluation(abc.ABC):
   @abc.abstractmethod
   def types_ok(self) -> bool:
     """Sanity check returns False if something has gone wrong with precision."""
+
+  @abc.abstractmethod
+  def get_estimates(self) -> Dict[str, Union[np.ndarray, float]]:
+    """Returns estimated quantities in a dictionary."""

@@ -57,3 +57,6 @@ class Evaluation(algorithm.Evaluation):
     self.current_values[self.index] += self.step_size * change
     self.index = (self.index + 1) % self.mrp.num_states
     return change
+
+  def get_estimates(self):
+    return {'v': self.current_values, 'r_bar': self.current_values[self.reference_index]}
