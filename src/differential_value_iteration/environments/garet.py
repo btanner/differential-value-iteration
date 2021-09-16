@@ -14,7 +14,7 @@ from differential_value_iteration.environments import structure
 
 
 def create(seed: int, num_states: int, num_actions: int,
-    branching_factor: int) -> structure.MarkovDecisionProcess:
+    branching_factor: int, dtype: np.dtype) -> structure.MarkovDecisionProcess:
   """Creates transition and reward matrices for GARET instance."""
   rng_key = jax.random.PRNGKey(seed=seed)
   garet_final_shape = (num_states, num_actions, num_states)
@@ -82,6 +82,6 @@ def create(seed: int, num_states: int, num_actions: int,
   # Restructure for structure.MarkovDecisionProcess (A, S) vs (S, A).
   reward_matrix_marginalized = jnp.swapaxes(reward_matrix_marginalized, 0, 1)
   return structure.MarkovDecisionProcess(
-      transitions=np.array(transition_matrix),
-      rewards=np.array(reward_matrix_marginalized),
-      name=f'GARET S:{num_states} A:{num_actions} B:{branching_factor} K:{rng_key}')
+      transitions=np.array(transition_matrix, dtype=dtype),
+      rewards=np.array(reward_matrix_marginalized, dtype=dtype),
+      name=f'GARET S:{num_states} A:{num_actions} B:{branching_factor} K:{rng_key} D:{dtype.__name__}')
