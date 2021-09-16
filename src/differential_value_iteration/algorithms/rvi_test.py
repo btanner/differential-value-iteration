@@ -7,13 +7,24 @@ import numpy as np
 from absl.testing import absltest
 from absl.testing import parameterized
 from differential_value_iteration.algorithms import rvi
-from differential_value_iteration.environments import garet
 from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import structure
 
-_GARET1 = functools.partial(garet.create, seed=42, num_states=4, num_actions=4, branching_factor=3)
-_GARET2 = functools.partial(garet.create, seed=42, num_states=4, num_actions=20, branching_factor=3)
-_GARET3 = functools.partial(garet.create, seed=42, num_states=10, num_actions=2, branching_factor=3)
+_GARET1 = functools.partial(garet.create,
+                            seed=42,
+                            num_states=4,
+                            num_actions=4,
+                            branching_factor=3)
+_GARET2 = functools.partial(garet.create,
+                            seed=42,
+                            num_states=4,
+                            num_actions=20,
+                            branching_factor=3)
+_GARET3 = functools.partial(garet.create,
+                            seed=42,
+                            num_states=10,
+                            num_actions=2,
+                            branching_factor=3)
 
 
 class RVIEvaluationTest(parameterized.TestCase):
@@ -91,7 +102,7 @@ class RVIControlTest(parameterized.TestCase):
     with self.subTest('maintained_types'):
       self.assertTrue(algorithm.types_ok())
     with self.subTest('converged'):
-      self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
+      self.assertAlmostEqual(np.max(np.abs(changes)), 0.,
                              places=tolerance_places)
 
   @parameterized.parameters(itertools.product(
@@ -122,6 +133,7 @@ class RVIControlTest(parameterized.TestCase):
       self.assertTrue(algorithm.types_ok())
     with self.subTest('converged'):
       self.assertAlmostEqual(change_max, 0., places=tolerance_places)
+
 
 if __name__ == '__main__':
   absltest.main()
