@@ -23,60 +23,60 @@ _GARET2 = functools.partial(garet.create,
                             branching_factor=3)
 _GARET3 = functools.partial(garet.create,
                             seed=42,
-                            num_states=9,
+                            num_states=10,
                             num_actions=2,
-                            branching_factor=9)
+                            branching_factor=10)
 
 
-# class DVIEvaluationTest(parameterized.TestCase):
-#
-#   @parameterized.parameters(np.float32, np.float64)
-#   def test_dvi_sync_converges(self, dtype: np.dtype):
-#     tolerance_places = 6 if dtype is np.float32 else 10
-#     environment = micro.create_mrp1(dtype)
-#     algorithm = dvi.Evaluation(
-#         mrp=environment,
-#         step_size=.5,
-#         beta=.5,
-#         initial_r_bar=.5,
-#         initial_values=np.zeros(environment.num_states, dtype=dtype),
-#         synchronized=True)
-#
-#     for _ in range(50):
-#       changes = algorithm.update()
-#
-#     with self.subTest('did_not_diverge'):
-#       self.assertFalse(algorithm.diverged())
-#     with self.subTest('maintained_types'):
-#       self.assertTrue(algorithm.types_ok())
-#     with self.subTest('converged'):
-#       self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
-#                              places=tolerance_places)
-#
-#   @parameterized.parameters(np.float32, np.float64)
-#   def test_dvi_async_converges(self, dtype: np.dtype):
-#     tolerance_places = 6 if dtype is np.float32 else 10
-#     environment = micro.create_mrp1(dtype)
-#     algorithm = dvi.Evaluation(
-#         mrp=environment,
-#         step_size=.5,
-#         beta=.5,
-#         initial_r_bar=.5,
-#         initial_values=np.zeros(environment.num_states, dtype=dtype),
-#         synchronized=False)
-#
-#     for _ in range(50):
-#       change_sum = 0.
-#       for _ in range(environment.num_states):
-#         change = algorithm.update()
-#         change_sum += np.abs(change)
-#
-#     with self.subTest('did_not_diverge'):
-#       self.assertFalse(algorithm.diverged())
-#     with self.subTest('maintained_types'):
-#       self.assertTrue(algorithm.types_ok())
-#     with self.subTest('converged'):
-#       self.assertAlmostEqual(change_sum, 0., places=tolerance_places)
+class DVIEvaluationTest(parameterized.TestCase):
+
+  @parameterized.parameters(np.float32, np.float64)
+  def test_dvi_sync_converges(self, dtype: np.dtype):
+    tolerance_places = 6 if dtype is np.float32 else 10
+    environment = micro.create_mrp1(dtype)
+    algorithm = dvi.Evaluation(
+        mrp=environment,
+        step_size=.5,
+        beta=.5,
+        initial_r_bar=.5,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=True)
+
+    for _ in range(50):
+      changes = algorithm.update()
+
+    with self.subTest('did_not_diverge'):
+      self.assertFalse(algorithm.diverged())
+    with self.subTest('maintained_types'):
+      self.assertTrue(algorithm.types_ok())
+    with self.subTest('converged'):
+      self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
+                             places=tolerance_places)
+
+  @parameterized.parameters(np.float32, np.float64)
+  def test_dvi_async_converges(self, dtype: np.dtype):
+    tolerance_places = 6 if dtype is np.float32 else 10
+    environment = micro.create_mrp1(dtype)
+    algorithm = dvi.Evaluation(
+        mrp=environment,
+        step_size=.5,
+        beta=.5,
+        initial_r_bar=.5,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=False)
+
+    for _ in range(50):
+      change_sum = 0.
+      for _ in range(environment.num_states):
+        change = algorithm.update()
+        change_sum += np.abs(change)
+
+    with self.subTest('did_not_diverge'):
+      self.assertFalse(algorithm.diverged())
+    with self.subTest('maintained_types'):
+      self.assertTrue(algorithm.types_ok())
+    with self.subTest('converged'):
+      self.assertAlmostEqual(change_sum, 0., places=tolerance_places)
 
 
 class DVIControlTest(parameterized.TestCase):
