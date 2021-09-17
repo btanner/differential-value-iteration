@@ -164,7 +164,7 @@ class MDVIControlTest(parameterized.TestCase):
   def test_mdvi_sync_partial_vectorized_version_matches(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
       dtype: np.dtype):
-    atol = 1e-10 if dtype == np.float64 else 1e-6
+    atol = 1e-10 if dtype == np.float64 else 1e-5
     environment = mdp_constructor(dtype=dtype)
     initial_r_bar = 0.
     algorithm_orig = mdvi.Control1(
