@@ -65,6 +65,9 @@ class Evaluation(algorithm.Evaluation):
     self.index = (self.index + 1) % self.mrp.num_states
     return change
 
+  def get_estimates(self):
+    return {'v': self.current_values, 'r_bar': self.r_bar}
+
 
 class Control(algorithm.Control):
   """Differential Value Iteration for control."""
@@ -132,3 +135,6 @@ class Control(algorithm.Control):
     temp_s_by_a = self.mdp.rewards - self.r_bar + np.dot(self.mdp.transitions,
                                                          self.current_values) - self.current_values
     return np.argmax(temp_s_by_a, axis=0)
+
+  def get_estimates(self):
+    return {'v': self.current_values, 'r_bar': self.r_bar}

@@ -75,6 +75,8 @@ class Evaluation(algorithm.Evaluation):
     self.index = (self.index + 1) % self.mrp.num_states
     return change
 
+  def get_estimates(self):
+    return {'v': self.current_values, 'r_bar': self.r_bar}
 
 class Control1(algorithm.Control):
   """Multichain DVI for prediction, section 3.1.1 in paper."""
@@ -203,3 +205,6 @@ class Control1(algorithm.Control):
       temp_a = self.mdp.rewards[max_actions, s] - r_bar_s + np.dot(self.mdp.transitions[max_actions, s], self.current_values)
       best_actions[s] = np.argmax(temp_a)
     return best_actions
+
+  def get_estimates(self):
+    return {'v': self.current_values, 'r_bar': self.r_bar}
