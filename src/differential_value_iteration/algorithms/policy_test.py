@@ -18,7 +18,7 @@ _GARET1, _GARET2, _GARET3 = garet.GARET1, garet.GARET2, garet.GARET3
 class PolicyTest(parameterized.TestCase):
 
   @parameterized.parameters(itertools.product(
-      (micro.create_mdp1, _GARET1, _GARET2, _GARET3),
+      (micro.create_mdp1, micro.create_mdp2, _GARET1, _GARET2, _GARET3),
       (np.float32, np.float64)))
   def test_identical_policies_sync(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
