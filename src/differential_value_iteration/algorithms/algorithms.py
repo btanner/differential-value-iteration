@@ -4,19 +4,19 @@ import numpy as np
 def check_mrp(mrp):
   if mrp.transitions.ndim != 2:
     raise ValueError(
-      f'mrp transitions should be 2 dimensional, not: {mrp.transitions.shape}')
+        f'mrp transitions should be 2 dimensional, not: {mrp.transitions.shape}')
   if mrp.rewards.ndim != 1:
     raise ValueError(
-      f'mrp rewards should be 1 dimensional, not: {mrp.rewards.shape}')
+        f'mrp rewards should be 1 dimensional, not: {mrp.rewards.shape}')
 
 
 def check_mdp(mdp):
   if mdp.transitions.ndim != 3:
     raise ValueError(
-      f'mrd transitions should be 3 dimensional, not: {mdp.transitions.shape}')
+        f'mrd transitions should be 3 dimensional, not: {mdp.transitions.shape}')
   if mdp.rewards.ndim != 2:
     raise ValueError(
-      f'mrd rewards should be 2 dimensional, not: {mdp.rewards.shape}')
+        f'mrd rewards should be 2 dimensional, not: {mdp.rewards.shape}')
 
 
 class RVI_Evaluation:

@@ -4,7 +4,6 @@ import abc
 import numpy as np
 from typing import Dict, Union
 
-
 class Evaluation(abc.ABC):
 
   @abc.abstractmethod

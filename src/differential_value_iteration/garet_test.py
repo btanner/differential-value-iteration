@@ -4,6 +4,7 @@ from absl.testing import parameterized
 
 from differential_value_iteration.environments import garet
 
+import numpy as np
 
 class GaretTest(parameterized.TestCase):
 
@@ -21,6 +22,7 @@ class GaretTest(parameterized.TestCase):
         num_states=num_states,
         num_actions=num_actions,
         branching_factor=branching_factor,
+        dtype=np.float32,
     )
     self.assertTrue(mdp is not None)
 
