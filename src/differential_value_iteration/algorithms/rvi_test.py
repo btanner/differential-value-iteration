@@ -7,6 +7,7 @@ import numpy as np
 from absl.testing import absltest
 from absl.testing import parameterized
 from differential_value_iteration.algorithms import rvi
+from differential_value_iteration.environments import garet
 from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import structure
 
