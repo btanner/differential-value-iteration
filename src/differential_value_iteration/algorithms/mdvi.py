@@ -193,5 +193,13 @@ class Control1(algorithm.Control):
     return change
 
   def greedy_policy(self) -> np.ndarray:
+    # temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar)
+    # return np.argmax(temp_s_by_a, axis=0)
     temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar).T
-    return np.argmax(temp_s_by_a, axis=1)
+    self.r_bar = np.max(temp_s_by_a, axis=1)
+    best_actions = np.zeros(self.mdp.num_states, dtype=np.int32)
+    for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), self.r_bar):
+      max_actions = np.where(action_vals > r_bar_s - self.threshold)[0]
+      temp_a = self.mdp.rewards[max_actions, s] - r_bar_s + np.dot(self.mdp.transitions[max_actions, s], self.current_values)
+      best_actions[s] = np.argmax(temp_a)
+    return best_actions

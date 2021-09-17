@@ -1,4 +1,4 @@
-"""Tests for basic functioning of Multichain DVI algorithms."""
+"""Tests that our control algorithms find same policy ontest problems."""
 import functools
 import itertools
 from typing import Callable
@@ -39,7 +39,7 @@ class PolicyTest(parameterized.TestCase):
 
   @parameterized.parameters(itertools.product(
       (micro.create_mdp1, _GARET1, _GARET2, _GARET3),
-      (np.float64, )))
+      (np.float32, np.float64)))
   def test_identical_policies_sync(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
       dtype: np.dtype):
@@ -61,18 +61,18 @@ class PolicyTest(parameterized.TestCase):
         mdp=environment,
         step_size=.1,
         beta=.1,
-        threshold=.01,
+        threshold=.1,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
 
-    for i in range(1000):
+    for i in range(500):
       rvi_control.update()
       dvi_control.update()
       mdvi_control_1.update()
-    # with self.subTest('rvi vs dvi'):
-    #   np.testing.assert_array_equal(rvi_control.greedy_policy(),
-    #                                 dvi_control.greedy_policy())
+    with self.subTest('rvi vs dvi'):
+      np.testing.assert_array_equal(rvi_control.greedy_policy(),
+                                    dvi_control.greedy_policy())
     with self.subTest('rvi vs mdvi1'):
       np.testing.assert_array_equal(rvi_control.greedy_policy(),
                                     mdvi_control_1.greedy_policy())
