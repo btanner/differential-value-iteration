@@ -60,7 +60,7 @@ class Evaluation(algorithm.Evaluation):
     return change
 
 
-class Control(algorithm.Evaluation):
+class Control(algorithm.Control):
   """Relative Value Iteration for control."""
 
   def __init__(
@@ -97,15 +97,6 @@ class Control(algorithm.Evaluation):
     return self.update_async()
 
   def update_sync(self) -> np.ndarray:
-    # temp_s_by_a = np.zeros((self.mdp.num_states, self.mdp.num_actions),
-    #                        dtype=self.mdp.rewards.dtype)
-    # for a in range(self.mdp.num_actions):
-    #   temp_s_by_a[:, a] = self.mdp.rewards[a] + np.dot(self.mdp.transitions[a],
-    #                                                    self.current_values -
-    #                                                    self.current_values[
-    #                                                      self.reference_index]) - self.current_values
-    # changes = np.max(temp_s_by_a, axis=1)
-
     temp_s_by_a = self.mdp.rewards + np.dot(self.mdp.transitions,
                                             self.current_values -
                                             self.current_values[
@@ -115,12 +106,6 @@ class Control(algorithm.Evaluation):
     return changes
 
   def update_async(self) -> np.ndarray:
-    # temp_a = np.zeros(self.mdp.num_actions)
-    # for a in range(self.mdp.num_actions):
-    #   temp_a[a] = self.mdp.rewards[a][self.index] + np.dot(
-    #       self.mdp.transitions[a][self.index],
-    #       self.current_values - self.current_values[self.reference_index]) - \
-    #               self.current_values[self.index]
     temp_a = self.mdp.rewards[:, self.index] + np.dot(
         self.mdp.transitions[:, self.index],
         self.current_values - self.current_values[self.reference_index]) - \
@@ -129,3 +114,10 @@ class Control(algorithm.Evaluation):
     self.current_values[self.index] += self.step_size * change
     self.index = (self.index + 1) % self.mdp.num_states
     return change
+
+  def greedy_policy(self) -> np.ndarray:
+    temp_s_by_a = self.mdp.rewards + np.dot(self.mdp.transitions,
+                                            self.current_values -
+                                            self.current_values[
+                                              self.reference_index])
+    return np.argmax(temp_s_by_a, axis=0)

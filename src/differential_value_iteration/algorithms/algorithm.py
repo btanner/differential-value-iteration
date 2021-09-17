@@ -20,3 +20,9 @@ class Evaluation(abc.ABC):
   @abc.abstractmethod
   def types_ok(self) -> bool:
     """Sanity check returns False if something has gone wrong with precision."""
+
+class Control(Evaluation):
+
+  @abc.abstractmethod
+  def greedy_policy(self) -> np.ndarray:
+    """Returns the best action in each state."""

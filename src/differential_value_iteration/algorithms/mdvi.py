@@ -76,7 +76,7 @@ class Evaluation(algorithm.Evaluation):
     return change
 
 
-class Control1(algorithm.Evaluation):
+class Control1(algorithm.Control):
   """Multichain DVI for prediction, section 3.1.1 in paper."""
 
   def __init__(
@@ -191,3 +191,7 @@ class Control1(algorithm.Evaluation):
     self.r_bar[self.index] += self.beta * change
     self.index = (self.index + 1) % self.mdp.num_states
     return change
+
+  def greedy_policy(self) -> np.ndarray:
+    temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar).T
+    return np.argmax(temp_s_by_a, axis=1)
