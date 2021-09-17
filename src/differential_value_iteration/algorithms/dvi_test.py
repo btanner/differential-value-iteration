@@ -122,7 +122,7 @@ class DVIControlTest(parameterized.TestCase):
         mdp=environment,
         step_size=.5,
         beta=.5,
-        initial_r_bar=.5,
+        initial_r_bar=.0,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
 
