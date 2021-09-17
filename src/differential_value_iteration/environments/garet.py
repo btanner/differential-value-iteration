@@ -7,6 +7,7 @@ The current implementation does not support online, sample-based operation.
 
 Instead, it is appropriate for value/policy iteration algorithm research.
 """
+import functools
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -85,3 +86,19 @@ def create(seed: int, num_states: int, num_actions: int,
       transitions=np.array(transition_matrix, dtype=dtype),
       rewards=np.array(reward_matrix_marginalized, dtype=dtype),
       name=f'GARET S:{num_states} A:{num_actions} B:{branching_factor} K:{rng_key} D:{dtype.__name__}')
+
+GARET1 = functools.partial(create,
+                           seed=42,
+                           num_states=4,
+                           num_actions=4,
+                           branching_factor=3)
+GARET2 = functools.partial(create,
+                           seed=42,
+                           num_states=4,
+                           num_actions=20,
+                           branching_factor=3)
+GARET3 = functools.partial(create,
+                           seed=42,
+                           num_states=10,
+                           num_actions=2,
+                           branching_factor=3)

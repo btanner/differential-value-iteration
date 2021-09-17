@@ -11,21 +11,7 @@ from differential_value_iteration.environments import garet
 from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import structure
 
-_GARET1 = functools.partial(garet.create,
-                            seed=42,
-                            num_states=4,
-                            num_actions=4,
-                            branching_factor=3)
-_GARET2 = functools.partial(garet.create,
-                            seed=42,
-                            num_states=4,
-                            num_actions=20,
-                            branching_factor=3)
-_GARET3 = functools.partial(garet.create,
-                            seed=42,
-                            num_states=10,
-                            num_actions=2,
-                            branching_factor=10)
+_GARET1, _GARET2, _GARET3 = garet.GARET1, garet.GARET2, garet.GARET3
 
 
 class DVIEvaluationTest(parameterized.TestCase):
@@ -88,7 +74,7 @@ class DVIControlTest(parameterized.TestCase):
   def test_dvi_sync_converges(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
       dtype: np.dtype):
-    tolerance_places = 10 if dtype == np.float64 else 6
+    tolerance_places = 10 if dtype == np.float64 else 5
     environment = mdp_constructor(dtype=dtype)
     algorithm = dvi.Control(
         mdp=environment,
@@ -116,7 +102,7 @@ class DVIControlTest(parameterized.TestCase):
   def test_dvi_async_converges(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
       dtype: np.dtype):
-    tolerance_places = 10 if dtype == np.float64 else 6
+    tolerance_places = 9 if dtype == np.float64 else 6
     environment = mdp_constructor(dtype=dtype)
     algorithm = dvi.Control(
         mdp=environment,

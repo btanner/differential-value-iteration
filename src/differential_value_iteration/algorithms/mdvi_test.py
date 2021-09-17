@@ -1,5 +1,4 @@
 """Tests for basic functioning of Multichain DVI algorithms."""
-import functools
 import itertools
 import time
 from typing import Callable
@@ -12,26 +11,7 @@ from differential_value_iteration.environments import garet
 from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import structure
 
-_GARET1 = functools.partial(garet.create,
-                            seed=42,
-                            num_states=4,
-                            num_actions=4,
-                            branching_factor=3)
-_GARET2 = functools.partial(garet.create,
-                            seed=42,
-                            num_states=4,
-                            num_actions=20,
-                            branching_factor=3)
-_GARET3 = functools.partial(garet.create,
-                            seed=42,
-                            num_states=10,
-                            num_actions=2,
-                            branching_factor=3)
-_GARET_DEBUG = functools.partial(garet.create,
-                            seed=42,
-                            num_states=3,
-                            num_actions=2,
-                            branching_factor=3)
+_GARET1, _GARET2, _GARET3 = garet.GARET1, garet.GARET2, garet.GARET3
 
 
 class MDVIEvaluationTest(parameterized.TestCase):
