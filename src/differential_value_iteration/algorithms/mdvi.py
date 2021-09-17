@@ -154,8 +154,8 @@ class Control1(algorithm.Evaluation):
     return delta
 
   def update_sync(self) -> np.ndarray:
-    temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar)
-    self.r_bar = np.max(temp_s_by_a, axis=0)
+    temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar).T
+    self.r_bar = np.max(temp_s_by_a, axis=1)
     changes = np.zeros(self.mdp.num_states, dtype=self.mdp.rewards.dtype)
     for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), self.r_bar):
       max_actions = np.where(action_vals > r_bar_s - self.threshold)[0]

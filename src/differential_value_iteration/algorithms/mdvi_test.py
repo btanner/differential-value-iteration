@@ -26,6 +26,11 @@ _GARET3 = functools.partial(garet.create,
                             num_states=10,
                             num_actions=2,
                             branching_factor=3)
+_GARET_DEBUG = functools.partial(garet.create,
+                            seed=42,
+                            num_states=3,
+                            num_actions=2,
+                            branching_factor=3)
 # _GARET2 = functools.partial(garet.create, seed=42, num_states=3, num_actions=20, branching_factor=3)
 #
 # class MDVIEvaluationTest(parameterized.TestCase):
@@ -104,10 +109,9 @@ class MDVIControlTest(parameterized.TestCase):
   # Seems like even control1 does not like GARET1 with the original updates.
 
   @parameterized.parameters(itertools.product(
-      (micro.create_mdp1, micro.create_mdp2, _GARET1, _GARET2, _GARET3),(False,),(np.float64,)))
-      # (micro.create_mdp1, micro.create_mdp2, _GARET1),
-      # (False, True),
-      # (np.float32, np.float64)))
+      (micro.create_mdp1, micro.create_mdp2, _GARET1, _GARET2, _GARET3),
+      (False, True),
+      (np.float32, np.float64)))
   def test_mdvi_sync_converges(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
       r_bar_scalar: bool, dtype: np.dtype):
@@ -127,10 +131,8 @@ class MDVIControlTest(parameterized.TestCase):
     with self.subTest('initial_types'):
       self.assertTrue(algorithm.types_ok())
 
-    for _ in range(500):
-      # changes = algorithm.update()
-      changes = algorithm.update_orig()
-      # print(changes, algorithm.r_bar)
+    for i in range(250):
+      changes = algorithm.update()
 
     with self.subTest('did_not_diverge'):
       self.assertFalse(algorithm.diverged())
