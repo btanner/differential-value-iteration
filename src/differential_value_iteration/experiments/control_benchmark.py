@@ -64,6 +64,7 @@ def run(
     for algorithm_constructor in algorithm_constructors:
       total_time = 0.
       converged = False
+      diverged = False
       alg = algorithm_constructor(mdp=environment,
                                   initial_values=initial_values,
                                   synchronized=synchronized)
@@ -82,18 +83,19 @@ def run(
         # Basically divide by num_states if running async.
         change_summary /= inner_loop_range
         if alg.diverged():
+          diverged = True
           converged = False
           break
 
         if change_summary <= convergence_tolerance and i > 1:
           converged = True
-      if alg.diverged():
+      if diverged:
         print(
           f'Time:xxxxx seconds\tDIVERGED\t{i} iterations\tMean final Change:{np.mean(np.abs(changes))}')
       else:
         converged_string = 'YES' if converged else 'NO'
         print(
-          f'Time:{total_time:.3f} seconds\tConverged:{converged_string}.\t{i} iterations\tMean final Change:{np.mean(np.abs(changes)):.5f}')
+          f'Average Time:{1000.*total_time/i:.3f} ms\tConverged:{converged_string}.\t{i} iterations\tMean final Change:{np.mean(np.abs(changes)):.5f}')
 
 
 def main(argv):
