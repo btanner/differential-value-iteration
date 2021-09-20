@@ -110,12 +110,18 @@ def main(argv):
     algorithm_constructors.append(dvi_algorithm)
 
   if FLAGS.mdvi:
-    mdvi_algorithm = functools.partial(mdvi.Control1,
-                                       step_size=.1,
-                                       beta=.1,
-                                       initial_r_bar=0.,
-                                       threshold=.1)
-    algorithm_constructors.append(mdvi_algorithm)
+    mdvi_algorithm_1 = functools.partial(mdvi.Control1,
+                                         step_size=.1,
+                                         beta=.1,
+                                         initial_r_bar=0.,
+                                         threshold=.1)
+    algorithm_constructors.append(mdvi_algorithm_1)
+    mdvi_algorithm_2 = functools.partial(mdvi.Control2,
+                                         step_size=.1,
+                                         beta=.1,
+                                         initial_r_bar=0.,
+                                         threshold=.1)
+    algorithm_constructors.append(mdvi_algorithm_2)
   if FLAGS.rvi:
     rvi_algorithm = functools.partial(rvi.Control,
                                       step_size=.1,

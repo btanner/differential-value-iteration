@@ -90,16 +90,18 @@ class MDVIControlTest(parameterized.TestCase):
 
   @parameterized.parameters(itertools.product(
       (micro.create_mdp1, micro.create_mdp2, _GARET1, _GARET2, _GARET3),
+      (mdvi.Control1, mdvi.Control2),
       (False, True),
       (np.float32, np.float64)))
   def test_mdvi_sync_converges(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
+      alg_constructor,
       r_bar_scalar: bool, dtype: np.dtype):
     tolerance_places = 6 if dtype == np.float64 else 5
     environment = mdp_constructor(dtype=dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
-    algorithm = mdvi.Control1(
+    algorithm = alg_constructor(
         mdp=environment,
         step_size=.1,
         beta=.1,
@@ -124,16 +126,18 @@ class MDVIControlTest(parameterized.TestCase):
 
   @parameterized.parameters(itertools.product(
       (micro.create_mdp1, micro.create_mdp2, _GARET1, _GARET2, _GARET3),
+      (mdvi.Control1, mdvi.Control2),
       (False, True),
       (np.float32, np.float64)))
   def test_mdvi_async_converges(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
+      alg_constructor,
       r_bar_scalar: bool, dtype: np.dtype):
     tolerance_places = 4 if dtype == np.float64 else 3
     environment = mdp_constructor(dtype=dtype)
     initial_r_bar = 0. if r_bar_scalar else np.full(environment.num_states,
                                                     0., dtype)
-    algorithm = mdvi.Control1(
+    algorithm = alg_constructor(
         mdp=environment,
         step_size=.1,
         beta=.1,
