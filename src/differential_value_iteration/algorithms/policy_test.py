@@ -45,7 +45,14 @@ class PolicyTest(parameterized.TestCase):
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
-
+    mdvi_control_2 = mdvi.Control2(
+        mdp=environment,
+        step_size=.1,
+        beta=.1,
+        threshold=.1,
+        initial_r_bar=0.,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=True)
     for i in range(500):
       rvi_control.update()
       dvi_control.update()
@@ -56,6 +63,9 @@ class PolicyTest(parameterized.TestCase):
     with self.subTest('rvi vs mdvi1'):
       np.testing.assert_array_equal(rvi_control.greedy_policy(),
                                     mdvi_control_1.greedy_policy())
+    with self.subTest('mdvi1 vs mdvi2'):
+      np.testing.assert_array_equal(mdvi_control_1.greedy_policy(),
+                                    mdvi_control_2.greedy_policy())
 
 
 if __name__ == '__main__':
