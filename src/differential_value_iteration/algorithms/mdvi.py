@@ -78,8 +78,7 @@ class Evaluation(algorithm.Evaluation):
   def get_estimates(self):
     return {'v': self.current_values, 'r_bar': self.r_bar}
 
-  
-class Control1(algorithm.Evaluation):
+class Control1(algorithm.Control):
   """Multichain DVI for prediction, section 3.1.1 in paper."""
 
   def __init__(
@@ -194,6 +193,18 @@ class Control1(algorithm.Evaluation):
     self.r_bar[self.index] += self.beta * change
     self.index = (self.index + 1) % self.mdp.num_states
     return change
+
+  def greedy_policy(self) -> np.ndarray:
+    # temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar)
+    # return np.argmax(temp_s_by_a, axis=0)
+    temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar).T
+    self.r_bar = np.max(temp_s_by_a, axis=1)
+    best_actions = np.zeros(self.mdp.num_states, dtype=np.int32)
+    for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), self.r_bar):
+      max_actions = np.where(action_vals > r_bar_s - self.threshold)[0]
+      temp_a = self.mdp.rewards[max_actions, s] - r_bar_s + np.dot(self.mdp.transitions[max_actions, s], self.current_values)
+      best_actions[s] = np.argmax(temp_a)
+    return best_actions
 
   def get_estimates(self):
     return {'v': self.current_values, 'r_bar': self.r_bar}

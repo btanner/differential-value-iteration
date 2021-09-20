@@ -69,7 +69,7 @@ class Evaluation(algorithm.Evaluation):
     return {'v': self.current_values, 'r_bar': self.r_bar}
 
 
-class Control(algorithm.Evaluation):
+class Control(algorithm.Control):
   """Differential Value Iteration for control."""
 
   def __init__(
@@ -113,10 +113,6 @@ class Control(algorithm.Evaluation):
     return self.update_async()
 
   def update_sync(self) -> np.ndarray:
-    # temp_s_by_a = np.zeros((self.num_states, self.num_actions))
-    # for a in range(self.num_actions):
-    #   temp_s_by_a[:, a] = self.r[a] - self.r_bar + np.dot(self.p[a],
-    #                                                       self.v) - self.v
     temp_s_by_a = self.mdp.rewards - self.r_bar + np.dot(self.mdp.transitions,
                                                          self.current_values) - self.current_values
     changes = np.max(temp_s_by_a, axis=0)
@@ -126,13 +122,6 @@ class Control(algorithm.Evaluation):
     return changes
 
   def update_async(self) -> np.ndarray:
-    # temp_a = np.zeros(self.num_actions)
-    # for a in range(self.num_actions):
-    #   temp_a[a] = self.r[a][idx] - self.r_bar + np.dot(self.p[a][idx], self.v) - \
-    #               self.v[idx]
-    # delta = np.max(temp_a)
-    # self.v[idx] += self.alpha * delta
-    # self.r_bar += self.beta * delta
     temp_a = self.mdp.rewards[:, self.index] - self.r_bar + np.dot(
         self.mdp.transitions[:, self.index], self.current_values) - \
              self.current_values[self.index]
@@ -141,7 +130,11 @@ class Control(algorithm.Evaluation):
     self.r_bar += self.beta * change
     self.index = (self.index + 1) % self.mdp.num_states
     return change
-  
+
+  def greedy_policy(self) -> np.ndarray:
+    temp_s_by_a = self.mdp.rewards - self.r_bar + np.dot(self.mdp.transitions,
+                                                         self.current_values) - self.current_values
+    return np.argmax(temp_s_by_a, axis=0)
+
   def get_estimates(self):
     return {'v': self.current_values, 'r_bar': self.r_bar}
-

@@ -25,3 +25,9 @@ class Evaluation(abc.ABC):
   @abc.abstractmethod
   def get_estimates(self) -> Dict[str, Union[np.ndarray, float]]:
     """Returns estimated quantities in a dictionary."""
+
+class Control(Evaluation):
+
+  @abc.abstractmethod
+  def greedy_policy(self) -> np.ndarray:
+    """Returns the best action in each state."""
