@@ -89,13 +89,11 @@ def run(
 
         if change_summary <= convergence_tolerance and i > 1:
           converged = True
+      converged_string = 'YES\t' if converged else 'NO\t'
       if diverged:
-        print(
-          f'Time:xxxxx seconds\tDIVERGED\t{i} iterations\tMean final Change:{np.mean(np.abs(changes))}')
-      else:
-        converged_string = 'YES' if converged else 'NO'
-        print(
-          f'Average Time:{1000.*total_time/i:.3f} ms\tConverged:{converged_string}.\t{i} iterations\tMean final Change:{np.mean(np.abs(changes)):.5f}')
+        converged_string = 'DIVERGED'
+      print(
+        f'Average Time:{1000.*total_time/i:.3f} ms\tConverged:{converged_string}\t{i} iterations\tMean final Change:{np.mean(np.abs(changes)):.5f}')
 
 
 def main(argv):
