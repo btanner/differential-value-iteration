@@ -225,32 +225,23 @@ class Control1(algorithm.Control):
 
 class Control2(Control1):
   def update_sync(self) -> np.ndarray:
-    temp_s_by_a = np.zeros((self.mdp.num_states, self.mdp.num_actions),
-                           dtype=self.mdp.rewards.dtype)
-    for a in range(self.mdp.num_actions):
-      temp_s_by_a[:, a] = np.dot(self.mdp.transitions[a], self.r_bar)
-    self.r_bar = np.max(temp_s_by_a, axis=1)
-    temp_s_by_a *= 0.
-    for a in range(self.mdp.num_actions):
-      temp_s_by_a[:, a] = self.mdp.rewards[a] - self.r_bar + np.dot(
-          self.mdp.transitions[a],
-          self.current_values) - self.current_values
-    delta = np.max(temp_s_by_a, axis=1)
+    self.r_bar = np.max(np.dot(self.mdp.transitions, self.r_bar).T, axis=1)
+    next_vals = np.dot(self.mdp.transitions, self.current_values)
+    next_val_diffs = next_vals - self.current_values
+    r_diffs = self.mdp.rewards - self.r_bar
+    delta = np.max(r_diffs + next_val_diffs, axis=0)
     self.current_values += self.step_size * delta
     self.r_bar += self.beta * delta
     return delta
 
   def update_async(self) -> np.ndarray:
-    temp_a = np.zeros(self.mdp.num_actions, dtype=self.mdp.rewards.dtype)
-    for a in range(self.mdp.num_actions):
-      temp_a[a] = np.dot(self.mdp.transitions[a][self.index], self.r_bar)
-    self.r_bar[self.index] = np.max(temp_a)
-    temp_a *= 0.
-    for a in range(self.mdp.num_actions):
-      temp_a[a] = self.mdp.rewards[a][self.index] - self.r_bar[
-        self.index] + np.dot(self.mdp.transitions[a][self.index],
-                             self.current_values) - self.current_values[self.index]
-    delta = np.max(temp_a)
+    self.r_bar[self.index] = np.max(np.dot(self.mdp.transitions[:, self.index],
+                                           self.r_bar))
+    next_vals = np.dot(self.mdp.transitions[:, self.index], self.current_values)
+    next_val_diffs = next_vals - self.current_values[self.index]
+    r_diff = self.mdp.rewards[:, self.index] - self.r_bar[self.index]
+    delta = np.max(r_diff + next_val_diffs)
+
     self.current_values[self.index] += self.step_size * delta
     self.r_bar[self.index] += self.beta * delta
     self.index = (self.index + 1) % self.mdp.num_states
