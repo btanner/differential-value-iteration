@@ -118,7 +118,7 @@ class PolicyTest(parameterized.TestCase):
                                     mdvi_control_1.greedy_policy())
     with self.subTest('mdvi1 vs mdvi2'):
       np.testing.assert_array_equal(mdvi_control_1.greedy_policy(),
-                                    mdvi_control_2.greedy_policy())\
+                                    mdvi_control_2.greedy_policy())
 
   @parameterized.parameters(itertools.product(
       (_GARET1,),
