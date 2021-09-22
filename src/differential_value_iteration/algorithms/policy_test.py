@@ -69,9 +69,61 @@ class PolicyTest(parameterized.TestCase):
                                     mdvi_control_2.greedy_policy())
 
   @parameterized.parameters(itertools.product(
+      (micro.create_mdp1, micro.create_mdp2, _GARET1, _GARET2, _GARET3),
+      (np.float32, np.float64)))
+  def test_identical_policies_async(self,
+      mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
+      dtype: np.dtype):
+    environment = mdp_constructor(dtype=dtype)
+    rvi_control = rvi.Control(
+        mdp=environment,
+        step_size=.75,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        reference_index=0,
+        synchronized=False)
+    dvi_control = dvi.Control(
+        mdp=environment,
+        step_size=.1,
+        beta=.1,
+        initial_r_bar=0.,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=False)
+    mdvi_control_1 = mdvi.Control1(
+        mdp=environment,
+        step_size=.1,
+        beta=.1,
+        threshold=.1,
+        initial_r_bar=0.,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=False)
+    mdvi_control_2 = mdvi.Control2(
+        mdp=environment,
+        step_size=.1,
+        beta=.1,
+        threshold=.1,
+        initial_r_bar=0.,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=False)
+    for _ in range(500):
+      for _ in range(environment.num_states):
+        rvi_control.update()
+        dvi_control.update()
+        mdvi_control_1.update()
+        mdvi_control_2.update()
+    with self.subTest('rvi vs dvi'):
+      np.testing.assert_array_equal(rvi_control.greedy_policy(),
+                                    dvi_control.greedy_policy())
+    with self.subTest('rvi vs mdvi1'):
+      np.testing.assert_array_equal(rvi_control.greedy_policy(),
+                                    mdvi_control_1.greedy_policy())
+    with self.subTest('mdvi1 vs mdvi2'):
+      np.testing.assert_array_equal(mdvi_control_1.greedy_policy(),
+                                    mdvi_control_2.greedy_policy())\
+
+  @parameterized.parameters(itertools.product(
       (_GARET1,),
       (np.float32,)))
-  def test_identical_policies_sync(self,
+  def test_identical_policy_values_sync(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
       dtype: np.dtype):
     """Not useful now, can be used to compare return from different policies."""
