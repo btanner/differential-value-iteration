@@ -16,6 +16,29 @@ _GARET1, _GARET2, _GARET3 = garet.GARET1, garet.GARET2, garet.GARET3
 
 class DVIEvaluationTest(parameterized.TestCase):
 
+  @parameterized.parameters((np.float64,),)
+  def test_dvi_sync_converges(self, dtype: np.dtype):
+    tolerance_places = 6 if dtype is np.float32 else 10
+    environment = micro.create_mrp1(dtype)
+    algorithm = dvi.Evaluation(
+        mrp=environment,
+        step_size=.5,
+        beta=.5,
+        initial_r_bar=.5,
+        initial_values=np.zeros(environment.num_states, dtype=dtype),
+        synchronized=True)
+
+    for _ in range(50):
+      changes = algorithm.update()
+
+    with self.subTest('did_not_diverge'):
+      self.assertFalse(algorithm.diverged())
+    with self.subTest('maintained_types'):
+      self.assertTrue(algorithm.types_ok())
+    with self.subTest('converged'):
+      self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
+                             places=tolerance_places)
+
   @parameterized.parameters(np.float32, np.float64)
   def test_dvi_sync_converges(self, dtype: np.dtype):
     tolerance_places = 6 if dtype is np.float32 else 10
