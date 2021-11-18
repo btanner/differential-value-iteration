@@ -45,8 +45,8 @@ class DVIEvaluationTest(parameterized.TestCase):
     environment = micro.create_mrp1(dtype)
     algorithm = dvi.Evaluation(
         mrp=environment,
-        step_size=.5,
-        beta=.5,
+        step_size=1.,
+        beta=1.,
         initial_r_bar=.5,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -68,8 +68,8 @@ class DVIEvaluationTest(parameterized.TestCase):
     environment = micro.create_mrp1(dtype)
     algorithm = dvi.Evaluation(
         mrp=environment,
-        step_size=.5,
-        beta=.5,
+        step_size=1.,
+        beta=1.,
         initial_r_bar=.5,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
