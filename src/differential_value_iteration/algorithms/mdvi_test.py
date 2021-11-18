@@ -1,6 +1,5 @@
 """Tests for basic functioning of Multichain DVI algorithms."""
 import itertools
-import time
 from typing import Callable
 
 import numpy as np
@@ -32,8 +31,8 @@ class MDVIEvaluationTest(parameterized.TestCase):
                                                     0., dtype)
     algorithm = mdvi.Evaluation(
         mrp=environment,
-        step_size=.1,
-        beta=.1,
+        step_size=1.,
+        beta=1.,
         initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -65,8 +64,8 @@ class MDVIEvaluationTest(parameterized.TestCase):
                                                     0., dtype)
     algorithm = mdvi.Evaluation(
         mrp=environment,
-        step_size=.1,
-        beta=.1,
+        step_size=1.,
+        beta=1.,
         initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)

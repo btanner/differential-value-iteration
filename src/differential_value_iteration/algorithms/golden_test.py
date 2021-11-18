@@ -11,14 +11,14 @@ from differential_value_iteration.algorithms import rvi
 from differential_value_iteration.environments import micro
 
 _MAKE_DVI = functools.partial(dvi.Evaluation,
-                              step_size=.5,
-                              beta=.5,
+                              step_size=1.,
+                              beta=1.,
                               initial_r_bar=.0,
                               synchronized=True,
                               )
 _MAKE_MDVI = functools.partial(mdvi.Evaluation,
-                               step_size=.1,
-                               beta=.1,
+                               step_size=1.,
+                               beta=1.,
                                initial_r_bar=0.,
                                synchronized=True,
                                )
