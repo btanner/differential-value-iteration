@@ -12,11 +12,11 @@ from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import structure
 
 _GARET1, _GARET2, _GARET3 = garet.GARET1, garet.GARET2, garet.GARET3
-
+_DTYPES = (np.float64, )
 
 class DVIEvaluationTest(parameterized.TestCase):
 
-  @parameterized.parameters((np.float64,),)
+  @parameterized.parameters(_DTYPES,)
   def test_dvi_sync_converges(self, dtype: np.dtype):
     tolerance_places = 6 if dtype is np.float32 else 10
     environment = micro.create_mrp1(dtype)
@@ -39,7 +39,7 @@ class DVIEvaluationTest(parameterized.TestCase):
       self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
                              places=tolerance_places)
 
-  @parameterized.parameters(np.float32, np.float64)
+  @parameterized.parameters(_DTYPES)
   def test_dvi_sync_converges(self, dtype: np.dtype):
     tolerance_places = 6 if dtype is np.float32 else 10
     environment = micro.create_mrp1(dtype)
@@ -62,7 +62,7 @@ class DVIEvaluationTest(parameterized.TestCase):
       self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
                              places=tolerance_places)
 
-  @parameterized.parameters(np.float32, np.float64)
+  @parameterized.parameters(_DTYPES)
   def test_dvi_async_converges(self, dtype: np.dtype):
     tolerance_places = 6 if dtype is np.float32 else 10
     environment = micro.create_mrp1(dtype)
@@ -91,8 +91,7 @@ class DVIEvaluationTest(parameterized.TestCase):
 class DVIControlTest(parameterized.TestCase):
 
   @parameterized.parameters(itertools.product(
-      (micro.create_mdp1, _GARET1, _GARET2, _GARET3),
-      (np.float32, np.float64,))
+      (micro.create_mdp1, _GARET1, _GARET2, _GARET3), _DTYPES)
   )
   def test_dvi_sync_converges(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
@@ -101,8 +100,8 @@ class DVIControlTest(parameterized.TestCase):
     environment = mdp_constructor(dtype=dtype)
     algorithm = dvi.Control(
         mdp=environment,
-        step_size=.1,
-        beta=.1,
+        step_size=1.,
+        beta=1.,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -119,8 +118,7 @@ class DVIControlTest(parameterized.TestCase):
                              places=tolerance_places)
 
   @parameterized.parameters(itertools.product(
-      (micro.create_mdp1, _GARET1, _GARET2, _GARET3),
-      (np.float32, np.float64))
+      (micro.create_mdp1, _GARET1, _GARET2, _GARET3), _DTYPES)
   )
   def test_dvi_async_converges(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
@@ -135,7 +133,7 @@ class DVIControlTest(parameterized.TestCase):
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
 
-    for _ in range(100):
+    for _ in range(750):
       change_max = 0.
       for _ in range(environment.num_states):
         change = algorithm.update()

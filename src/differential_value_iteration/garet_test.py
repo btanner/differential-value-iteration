@@ -22,7 +22,7 @@ class GaretTest(parameterized.TestCase):
         num_states=num_states,
         num_actions=num_actions,
         branching_factor=branching_factor,
-        dtype=np.float32,
+        dtype=np.float64,
     )
     self.assertTrue(mdp is not None)
 

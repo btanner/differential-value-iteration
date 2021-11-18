@@ -1,4 +1,5 @@
 """Evaluation and Control Multichain Differential Value Iteration."""
+import pdb
 from typing import Union
 
 import numpy as np
@@ -92,6 +93,10 @@ class Control1(algorithm.Control):
       threshold: float,
       synchronized: bool):
     self.mdp = mdp
+    # QUICK HACK NOV 18
+    step_size /= mdp.num_states
+    beta /= mdp.num_states
+
     # Ensure internal value types match environment precision.
     self.initial_values = initial_values.copy().astype(mdp.rewards.dtype)
     if isinstance(initial_r_bar, np.ndarray):
@@ -140,39 +145,53 @@ class Control1(algorithm.Control):
       return self.update_sync()
     return self.update_async()
 
-  def update_sync_orig(self) -> np.ndarray:
+  def update_sync_orig(self) -> (np.ndarray, np.ndarray, np.ndarray):
+    """Straight Port of Yi's implementation. Returns new values and r_bar."""
     temp_s_by_a = np.zeros((self.mdp.num_states, self.mdp.num_actions),
                            dtype=self.mdp.rewards.dtype)
     for a in range(self.mdp.num_actions):
       temp_s_by_a[:, a] = np.dot(self.mdp.transitions[a], self.r_bar)
-    self.r_bar = np.max(temp_s_by_a, axis=1)
+    r_bar = np.max(temp_s_by_a, axis=1)
     delta = np.zeros(self.mdp.num_states, dtype=self.mdp.rewards.dtype)
     for s in range(self.mdp.num_states):
-      max_actions = np.where(temp_s_by_a[s] > self.r_bar[s] - self.threshold)[0]
+      max_actions = np.where(temp_s_by_a[s] > r_bar[s] - self.threshold)[0]
       temp_a = np.zeros(len(max_actions), dtype=self.mdp.rewards.dtype)
       for i in range(len(max_actions)):
-        temp_a[i] = self.mdp.rewards[max_actions[i]][s] - self.r_bar[
+        temp_a[i] = self.mdp.rewards[max_actions[i]][s] - r_bar[
           s] + np.dot(
             self.mdp.transitions[max_actions[i]][s], self.current_values) - \
                     self.current_values[s]
       delta[s] = np.max(temp_a)
-    self.current_values += self.step_size * delta
-    self.r_bar += self.beta * delta
-    return delta
+    new_current_values = self.current_values.copy() + self.step_size * delta
+    new_r_bar = r_bar.copy() + self.beta * delta
+    return delta, new_current_values, new_r_bar
 
-  def update_sync(self) -> np.ndarray:
+  def update_sync_tanno(self) -> (np.ndarray, np.ndarray, np.ndarray):
+    """Updated to be faster through vectorized ops. Work in progress."""
     temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar).T
-    self.r_bar = np.max(temp_s_by_a, axis=1)
+    r_bar = np.max(temp_s_by_a, axis=1)
     changes = np.zeros(self.mdp.num_states, dtype=self.mdp.rewards.dtype)
-    for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), self.r_bar):
+    for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), r_bar):
       max_actions = np.where(action_vals > r_bar_s - self.threshold)[0]
       temp_a = self.mdp.rewards[max_actions, s] - r_bar_s + np.dot(
           self.mdp.transitions[max_actions, s], self.current_values) - \
                self.current_values[s]
       changes[s] = np.max(temp_a)
-    self.current_values += self.step_size * changes
-    self.r_bar += self.beta * changes
-    return changes
+    new_current_values = self.current_values.copy() + self.step_size * changes
+    new_r_bar = r_bar.copy() + self.beta * changes
+    return changes, new_current_values, new_r_bar
+
+  def update_sync(self)-> np.ndarray:
+    orig_deltas, orig_new_values, orig_new_r_bar = self.update_sync_orig()
+    deltas, new_values, new_r_bar = self.update_sync_tanno()
+    assert(np.allclose(orig_deltas, deltas))
+    assert(np.allclose(orig_new_values, new_values))
+    assert(np.allclose(orig_new_r_bar, new_r_bar))
+
+    self.current_values = new_values
+    self.r_bar = new_r_bar
+    return deltas
+
 
   def update_async_orig(self) -> np.ndarray:
     temp_a = np.zeros(self.mdp.num_actions, self.mdp.rewards.dtype)
@@ -193,6 +212,7 @@ class Control1(algorithm.Control):
     return delta
 
   def update_async(self) -> np.ndarray:
+    """This is not currently tested."""
     temp_a = np.dot(self.mdp.transitions[:, self.index], self.r_bar)
     self.r_bar[self.index] = np.max(temp_a)
     max_actions = np.where(temp_a > self.r_bar[self.index] - self.threshold)[0]
@@ -207,16 +227,16 @@ class Control1(algorithm.Control):
     return change
 
   def greedy_policy(self) -> np.ndarray:
-    # temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar)
-    # return np.argmax(temp_s_by_a, axis=0)
-    temp_s_by_a = np.dot(self.mdp.transitions, self.r_bar).T
-    self.r_bar = np.max(temp_s_by_a, axis=1)
     best_actions = np.zeros(self.mdp.num_states, dtype=np.int32)
-    for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), self.r_bar):
-      max_actions = np.where(action_vals > r_bar_s - self.threshold)[0]
-      temp_a = self.mdp.rewards[max_actions, s] - r_bar_s + np.dot(
-          self.mdp.transitions[max_actions, s], self.current_values)
+
+    for s in range(self.mdp.num_states):
+      temp_a = np.zeros(self.mdp.num_actions, dtype=self.mdp.rewards.dtype)
+      for a in range(self.mdp.num_actions):
+        immediate_r = self.mdp.rewards[a, s]
+        future_r = np.dot(self.mdp.transitions[a, s], self.current_values)
+        temp_a[a] = immediate_r + future_r - self.current_values[s]# - r_bar[s]
       best_actions[s] = np.argmax(temp_a)
+
     return best_actions
 
   def get_estimates(self):
@@ -224,15 +244,30 @@ class Control1(algorithm.Control):
 
 
 class Control2(Control1):
-  def update_sync(self) -> np.ndarray:
-    self.r_bar = np.max(np.dot(self.mdp.transitions, self.r_bar).T, axis=1)
+
+  def update_sync_orig(self) -> (np.ndarray, np.ndarray, np.ndarray):
+    temp_s_by_a = np.zeros((self.mdp.num_states, self.mdp.num_actions))
+    for a in range(self.mdp.num_actions):
+      temp_s_by_a[:, a] = np.dot(self.mdp.transitions[a], self.r_bar)
+    r_bar = np.max(temp_s_by_a, axis=1)
+    temp_s_by_a = np.zeros((self.mdp.num_states, self.mdp.num_actions))
+    for a in range(self.mdp.num_actions):
+      temp_s_by_a[:, a] = self.mdp.rewards[a] - r_bar + np.dot(self.mdp.transitions[a],
+                                                          self.current_values) - self.current_values
+    delta = np.max(temp_s_by_a, axis=1)
+    new_current_values = self.current_values.copy() + self.step_size * delta
+    new_r_bar = r_bar.copy() + self.beta * delta
+    return delta, new_current_values, new_r_bar
+
+  def update_sync_tanno(self) -> np.ndarray:
+    r_bar = np.max(np.dot(self.mdp.transitions, self.r_bar).T, axis=1)
     next_vals = np.dot(self.mdp.transitions, self.current_values)
     next_val_diffs = next_vals - self.current_values
-    r_diffs = self.mdp.rewards - self.r_bar
+    r_diffs = self.mdp.rewards - r_bar
     delta = np.max(r_diffs + next_val_diffs, axis=0)
-    self.current_values += self.step_size * delta
-    self.r_bar += self.beta * delta
-    return delta
+    new_current_values = self.current_values.copy() + self.step_size * delta
+    new_r_bar = r_bar.copy() + self.beta * delta
+    return delta, new_current_values, new_r_bar
 
   def update_async(self) -> np.ndarray:
     self.r_bar[self.index] = np.max(np.dot(self.mdp.transitions[:, self.index],

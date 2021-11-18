@@ -15,10 +15,11 @@ from differential_value_iteration.environments import structure
 _MDPS = (micro.create_mdp1, micro.create_mdp2, garet.GARET1, garet.GARET2,
          garet.GARET3)
 
+_DTYPES = (np.float64, )
 
 class PolicyTest(parameterized.TestCase):
 
-  @parameterized.parameters(itertools.product(_MDPS, (np.float32, np.float64)))
+  @parameterized.parameters(itertools.product(_MDPS, _DTYPES))
   def test_identical_policies_sync(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
       dtype: np.dtype):
@@ -67,7 +68,7 @@ class PolicyTest(parameterized.TestCase):
       np.testing.assert_array_equal(mdvi_control_1.greedy_policy(),
                                     mdvi_control_2.greedy_policy())
 
-  @parameterized.parameters(itertools.product(_MDPS, (np.float32, np.float64)))
+  @parameterized.parameters(itertools.product(_MDPS, _DTYPES))
   def test_identical_policies_async(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
       dtype: np.dtype):
@@ -117,9 +118,7 @@ class PolicyTest(parameterized.TestCase):
       np.testing.assert_array_equal(mdvi_control_1.greedy_policy(),
                                     mdvi_control_2.greedy_policy())
 
-  @parameterized.parameters(itertools.product(
-      (garet.GARET1,),
-      (np.float32,)))
+  @parameterized.parameters(itertools.product((garet.GARET1,),_DTYPES))
   def test_identical_policy_values_sync(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
       dtype: np.dtype):

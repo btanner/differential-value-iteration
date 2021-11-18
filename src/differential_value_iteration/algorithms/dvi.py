@@ -81,6 +81,12 @@ class Control(algorithm.Control):
       beta: float,
       synchronized: bool):
     self.mdp = mdp
+
+    # QUICK HACK NOV 18
+    step_size /= mdp.num_states
+    beta /= mdp.num_states
+
+
     # Ensure internal value types match environment precision.
     self.initial_values = initial_values.copy().astype(mdp.rewards.dtype)
     self.initial_r_bar = mdp.rewards.dtype.type(initial_r_bar)
