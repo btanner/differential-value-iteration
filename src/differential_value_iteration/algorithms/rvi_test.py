@@ -11,11 +11,11 @@ from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import structure
 
 _GARET1, _GARET2, _GARET3 = garet.GARET1, garet.GARET2, garet.GARET3
-
+_DTYPES = (np.float64, )
 
 class RVIEvaluationTest(parameterized.TestCase):
 
-  @parameterized.parameters(np.float32, np.float64)
+  @parameterized.parameters(_DTYPES)
   def test_rvi_sync_converges(self, dtype: np.dtype):
     tolerance_places = 6 if dtype is np.float32 else 10
     environment = micro.create_mrp1(dtype)
@@ -37,7 +37,7 @@ class RVIEvaluationTest(parameterized.TestCase):
       self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
                              places=tolerance_places)
 
-  @parameterized.parameters(np.float32, np.float64)
+  @parameterized.parameters(_DTYPES)
   def test_rvi_async_converges(self, dtype: np.dtype):
     tolerance_places = 6 if dtype is np.float32 else 10
     environment = micro.create_mrp1(dtype)
@@ -65,8 +65,7 @@ class RVIEvaluationTest(parameterized.TestCase):
 class RVIControlTest(parameterized.TestCase):
 
   @parameterized.parameters(itertools.product(
-      (micro.create_mdp1, _GARET1, _GARET2, _GARET3),
-      (np.float32, np.float64))
+      (micro.create_mdp1, _GARET1, _GARET2, _GARET3), _DTYPES)
   )
   def test_rvi_sync_converges(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],
@@ -92,8 +91,7 @@ class RVIControlTest(parameterized.TestCase):
                              places=tolerance_places)
 
   @parameterized.parameters(itertools.product(
-      (micro.create_mdp1, _GARET1, _GARET2, _GARET3),
-      (np.float32, np.float64))
+      (micro.create_mdp1, _GARET1, _GARET2, _GARET3), _DTYPES)
   )
   def test_rvi_async_converges(self,
       mdp_constructor: Callable[[np.dtype], structure.MarkovDecisionProcess],

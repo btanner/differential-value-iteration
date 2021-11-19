@@ -33,7 +33,7 @@ class StructureTest(parameterized.TestCase):
 
   @parameterized.parameters(*_MDPS)
   def test_create_mdp(self, mdp_constructor):
-    mdp = mdp_constructor(dtype=np.float32)
+    mdp = mdp_constructor(dtype=np.float64)
     self.assertTrue(mdp is not None)
 
   @parameterized.parameters(

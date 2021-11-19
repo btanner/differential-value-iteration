@@ -17,6 +17,9 @@ class Evaluation(algorithm.Evaluation):
       step_size: float,
       beta: float,
       synchronized: bool):
+
+    step_size /= mrp.num_states
+    beta /= mrp.num_states
     self.mrp = mrp
     # Ensure internal value types match environment precision.
     self.initial_values = initial_values.copy().astype(mrp.rewards.dtype)
@@ -81,6 +84,11 @@ class Control(algorithm.Control):
       beta: float,
       synchronized: bool):
     self.mdp = mdp
+
+    step_size /= mdp.num_states
+    beta /= mdp.num_states
+
+
     # Ensure internal value types match environment precision.
     self.initial_values = initial_values.copy().astype(mdp.rewards.dtype)
     self.initial_r_bar = mdp.rewards.dtype.type(initial_r_bar)

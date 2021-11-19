@@ -13,6 +13,9 @@ import jax.numpy as jnp
 import numpy as np
 from differential_value_iteration.environments import structure
 
+from jax.config import config
+config.update("jax_enable_x64", True)
+
 
 def create(seed: int, num_states: int, num_actions: int,
     branching_factor: int, dtype: np.dtype) -> structure.MarkovDecisionProcess:
@@ -56,10 +59,10 @@ def create(seed: int, num_states: int, num_actions: int,
   # Create the transition and reward matrices.
   transition_matrix_flat = jnp.zeros(
       shape=(num_states * num_actions, num_states),
-      dtype=jnp.float32)
+      dtype=dtype)
   reward_matrix_flat = jnp.zeros(
       shape=(num_states * num_actions, num_states),
-      dtype=jnp.float32)
+      dtype=dtype)
 
   first_dim_indices = jnp.arange(num_states * num_actions)
   first_dim_indices = first_dim_indices.repeat(branching_factor)

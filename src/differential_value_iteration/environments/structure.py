@@ -4,7 +4,7 @@ from typing import Sequence
 import numpy as np
 import quantecon
 
-_TRANSITION_SUM_TOLERANCE = 1e-5
+_TRANSITION_SUM_TOLERANCE = 1e-14
 
 
 @dataclasses.dataclass(frozen=True)
