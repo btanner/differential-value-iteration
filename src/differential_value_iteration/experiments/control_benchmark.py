@@ -136,9 +136,16 @@ def measure_policy(iteration: int, alg: algorithm.Control, environment: structur
       if final:
         print(f'\nFinal Policy: {policy}')
       else:
-        print(f'Policy: {policy[:15]}...')
+        end_actions = np.unique(policy[15:])
+        if len(end_actions) == 1:
+          print(f'Policy: {policy[:15]} ... rest all {end_actions[0]}')
+        else:
+          print(f'Policy: {policy[:15]}...')
     else:
-      print(f'Policy: {policy}')
+      if len(policy) > 15 and len(np.unique(policy[15:])) == 1:
+        print(f'Policy: {policy[:15]} ... rest all {np.unique(policy[15:])[0]}')
+      else:
+        print(f'Policy: {policy}')
 
 
 def sample_return(policy, environment, start_state, length):
@@ -206,7 +213,7 @@ def main(argv):
     algorithm_constructors.append(mdvi_algorithm_2)
   if _RVI.value:
     rvi_algorithm = functools.partial(rvi.Control,
-                                      step_size=.1,
+                                      step_size=1.,
                                       reference_index=0)
     algorithm_constructors.append(rvi_algorithm)
 
