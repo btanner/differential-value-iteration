@@ -175,7 +175,7 @@ class Control1(algorithm.Control):
     r_bar = np.max(temp_s_by_a, axis=1)
     changes = np.zeros(self.mdp.num_states, dtype=self.mdp.rewards.dtype)
     for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), r_bar):
-      max_actions = np.where(action_vals > r_bar_s - self.threshold)[0]
+      max_actions = np.argwhere(action_vals > max(action_vals) - self.threshold)
       temp_a = self.mdp.rewards[max_actions, s] - r_bar_s + np.dot(
           self.mdp.transitions[max_actions, s], self.current_values) - \
                self.current_values[s]
@@ -196,38 +196,57 @@ class Control1(algorithm.Control):
     return deltas
 
 
-  def update_async_orig(self) -> np.ndarray:
-    temp_a = np.zeros(self.mdp.num_actions, self.mdp.rewards.dtype)
+  def update_async_orig(self) -> (float, int, float, float, int):
+    i = self.index
+    temp_a_i = np.zeros(self.mdp.num_actions, self.mdp.rewards.dtype)
     for a in range(self.mdp.num_actions):
-      temp_a[a] = np.dot(self.mdp.transitions[a][self.index], self.r_bar)
-    self.r_bar[self.index] = np.max(temp_a)
-    max_actions = np.where(temp_a > self.r_bar[self.index] - self.threshold)[0]
-    temp_a = np.zeros(len(max_actions), dtype=self.mdp.rewards.dtype)
-    for i in range(len(max_actions)):
-      temp_a[i] = self.mdp.rewards[max_actions[i]][self.index] - self.r_bar[
-        self.index] + np.dot(
-          self.mdp.transitions[max_actions[i]][self.index],
-          self.current_values) - self.current_values[self.index]
-    delta = np.max(temp_a)
-    self.current_values[self.index] += self.step_size * delta
-    self.r_bar[self.index] += self.beta * delta
-    self.index = (self.index + 1) % self.mdp.num_states
-    return delta
+      temp_a_i[a] = np.dot(self.mdp.transitions[a][i], self.r_bar)
+    r_bar_i = np.max(temp_a_i)
+    max_actions = np.where(temp_a_i > r_bar_i - self.threshold)[0]
+    temp_a_i = np.zeros(len(max_actions), dtype=self.mdp.rewards.dtype)
+    for a in range(len(max_actions)):
+      temp_a_i[a] = self.mdp.rewards[max_actions[a]][i] - r_bar_i + np.dot(
+          self.mdp.transitions[max_actions[a]][i],
+          self.current_values) - self.current_values[i]
+    delta = np.max(temp_a_i)
+    new_val_i = self.current_values[i] + self.step_size * delta
+    new_r_bar_i = r_bar_i + self.beta * delta
+    # self.current_values[self.index] += self.step_size * delta
+    # self.r_bar[self.index] += self.beta * delta
+    # self.index = (self.index + 1) % self.mdp.num_states
+    new_i = (i + 1) % self.mdp.num_states
+    return delta, i, new_val_i, new_r_bar_i, new_i
 
-  def update_async(self) -> np.ndarray:
+  def update_async_tanno(self) -> (float, int, float, float, int):
     """This is not currently tested."""
-    temp_a = np.dot(self.mdp.transitions[:, self.index], self.r_bar)
-    self.r_bar[self.index] = np.max(temp_a)
-    max_actions = np.where(temp_a > self.r_bar[self.index] - self.threshold)[0]
-    temp_a = self.mdp.rewards[max_actions, self.index] - self.r_bar[
-      self.index] + np.dot(self.mdp.transitions[max_actions, self.index],
-                           self.current_values) - self.current_values[
-               self.index]
+    i = self.index
+    temp_a_i = np.dot(self.mdp.transitions[:, i], self.r_bar)
+    r_bar_i = np.max(temp_a_i)
+    max_actions = np.argwhere(temp_a_i >= np.max(temp_a_i) - self.threshold)
+    temp_a = self.mdp.rewards[max_actions, i] - r_bar_i + np.dot(self.mdp.transitions[max_actions, i],
+                           self.current_values) - self.current_values[i]
     change = np.max(temp_a)
-    self.current_values[self.index] += self.step_size * change
-    self.r_bar[self.index] += self.beta * change
-    self.index = (self.index + 1) % self.mdp.num_states
-    return change
+    new_val_i = self.current_values[i] + self.step_size * change
+    new_r_bar_i = r_bar_i + self.beta * change
+    # self.current_values[i] += self.step_size * change
+    # self.r_bar[self.index] += self.beta * change
+    # self.index = (self.index + 1) % self.mdp.num_states
+    new_i = (i + 1) % self.mdp.num_states
+    return change, i, new_val_i, new_r_bar_i, new_i
+
+  def update_async(self)-> np.ndarray:
+    orig_delta, orig_i, orig_new_value, orig_new_r_bar, orig_new_i = self.update_async_orig()
+    delta, i, new_value, new_r_bar, new_i = self.update_async_tanno()
+    assert(np.allclose(orig_delta, delta))
+    assert(np.allclose(orig_new_value, new_value))
+    assert(np.allclose(orig_i, i))
+    assert(np.allclose(orig_new_r_bar, new_r_bar))
+    assert(np.allclose(orig_new_i, new_i))
+
+    self.current_values[i] = new_value
+    self.r_bar[i] = new_r_bar
+    self.index = new_i
+    return delta
 
   def greedy_policy(self) -> np.ndarray:
     best_actions = np.zeros(self.mdp.num_states, dtype=np.int32)

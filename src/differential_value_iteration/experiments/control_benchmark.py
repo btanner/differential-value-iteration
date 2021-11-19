@@ -61,7 +61,6 @@ def run(
       """
   for environment in environments:
     print(f'\nEnvironment: {environment.name}\n----------------------')
-    # print('\n', environment.rewards)
     initial_values = np.zeros(environment.num_states)
     inner_loop_range = 1 if synchronized else environment.num_states
     for algorithm_constructor in algorithm_constructors:
@@ -144,16 +143,16 @@ def main(argv):
 
   if FLAGS.mdvi:
     mdvi_algorithm_1 = functools.partial(mdvi.Control1,
-                                         step_size=.5,
-                                         beta=.5,
+                                         step_size=1.,
+                                         beta=1.,
                                          initial_r_bar=0.,
-                                         threshold=.1)
+                                         threshold=.01)
     algorithm_constructors.append(mdvi_algorithm_1)
     mdvi_algorithm_2 = functools.partial(mdvi.Control2,
                                          step_size=1.,
                                          beta=1.,
                                          initial_r_bar=0.,
-                                         threshold=.01)
+                                         threshold=.01) # not used.
     algorithm_constructors.append(mdvi_algorithm_2)
   if FLAGS.rvi:
     rvi_algorithm = functools.partial(rvi.Control,
