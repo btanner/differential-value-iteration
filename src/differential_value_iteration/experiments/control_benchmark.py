@@ -8,6 +8,7 @@ from typing import Sequence
 import numpy as np
 from absl import app
 from absl import flags
+
 from differential_value_iteration.algorithms import algorithm
 from differential_value_iteration.algorithms import dvi
 from differential_value_iteration.algorithms import mdvi
@@ -30,11 +31,13 @@ _CONVERGENCE_TOLERANCE = flags.DEFINE_float('convergence_tolerance', 1e-5,
                                             'Tolerance for convergence.')
 
 _DVI = flags.DEFINE_bool('dvi', True, 'Run Differential Value Iteration')
-_MDVI = flags.DEFINE_bool('mdvi', True, 'Run Multichain Differential Value Iteration')
+_MDVI = flags.DEFINE_bool('mdvi', True,
+                          'Run Multichain Differential Value Iteration')
 _RVI = flags.DEFINE_bool('rvi', True, 'Run Relative Value Iteration')
 _RANDOM = flags.DEFINE_bool('random', True, 'Use Random Agent')
 
-_EVAL_ALL_STATES = flags.DEFINE_bool('all_states', False, 'Evaluate all starting states')
+_EVAL_ALL_STATES = flags.DEFINE_bool('all_states', False,
+                                     'Evaluate all starting states')
 
 # Environment flags
 _MDP1 = flags.DEFINE_bool('mdp1', True, 'Include MDP1 in benchmark.')
@@ -99,49 +102,58 @@ def run(
           converged = True
           break
       converged_string = 'YES\t' if converged else 'NO\t'
-      mean_returns, std_returns = estimate_policy_average_reward(alg, environment, eval_all_states)
+
+      policy = alg.greedy_policy()
+      mean_returns, std_returns = estimate_policy_average_reward_new(policy,
+                                                                     environment,
+                                                                     eval_all_states)
 
       if diverged:
         converged_string = 'DIVERGED'
       print(
-        f'Average Time:{1000.*total_time/i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f}')
-      print('Returns (stdev)', end=':')
+          f'Average Time:{1000. * total_time / i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f}')
+      print('Returns', end=':')
       for mean_return, std_return in zip(mean_returns, std_returns):
         print(f'{mean_return:.2f} ({std_return:.2f})', end=' ')
       print()
-      print(f'Policy: {alg.greedy_policy()}')
+      policy_entries = np.unique(policy)
+      if len(policy_entries) == 1:
+        print(f'Policy: {policy_entries} everywhere.')
+      else:
+        print(f'Policy: {policy}')
 
-def estimate_policy_average_reward(alg, environment, all_states: bool):
-  policy = alg.greedy_policy()
-  mc = environment.as_markov_chain_from_deterministic_policy(policy)
-  sim_length = 1000
+
+def sample_return(policy, environment, start_state, length):
+  stochastic = True if policy.ndim == 2 else False
+  state = start_state
+  total_return = 0.
+
+  for _ in range(length):
+    if stochastic:
+      action = np.random.choice(a=environment.num_actions, p=policy[:, state])
+    else:
+      action = policy[state]
+    total_return += environment.rewards[action, state]
+    state = np.random.choice(a=environment.num_states,
+                             p=environment.transitions[action, state])
+  return total_return / length
+
+
+def estimate_policy_average_reward_new(policy, environment, all_states: bool):
+  length = 1000
   num_reps = 100
   starting_states = np.arange(environment.num_states) if all_states else [0]
 
   means = np.zeros(len(starting_states), dtype=np.float64)
   stdevs = np.zeros(len(starting_states), dtype=np.float64)
 
-
   for starting_state in starting_states:
-    returns = np.zeros(num_reps, dtype=np.float64)
-    # Generatate sequences of states under greedy policy.
-    simulation_results = mc.simulate(ts_length=sim_length,
-                                     init=starting_state,
-                                     num_reps=num_reps)
-    for i, states_visited in enumerate(simulation_results):
-      if max(states_visited) > len(policy):
-        print(f'apparently visited states: {states_visited} but have policy: {policy}')
-      # If this crashes, then mc.simulate is sampling invalid states b/c CDFS don't sum to 1.
-      # In that case, check if any states_visited are == num_states, and if so, resample.
-      actions_taken = policy[states_visited]
-      rewards_seen = [environment.rewards[a, s] for a, s in zip (actions_taken, states_visited)]
-      returns[i] = np.mean(rewards_seen)
+    returns = []
+    for _ in range(num_reps):
+      returns.append(sample_return(policy, environment, starting_state, length))
     means[starting_state] = np.mean(returns)
     stdevs[starting_state] = np.std(returns)
   return means, stdevs
-
-
-
 
 
 def main(argv):
@@ -172,7 +184,7 @@ def main(argv):
                                          step_size=1.,
                                          beta=1.,
                                          initial_r_bar=0.,
-                                         threshold=.01) # not used.
+                                         threshold=.01)  # not used.
     algorithm_constructors.append(mdvi_algorithm_2)
   if _RVI.value:
     rvi_algorithm = functools.partial(rvi.Control,

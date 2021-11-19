@@ -1,6 +1,7 @@
 """Random control baseline."""
 
 import numpy as np
+
 from differential_value_iteration.algorithms import algorithm
 from differential_value_iteration.environments import structure
 
@@ -39,7 +40,9 @@ class Control(algorithm.Control):
     return 0.
 
   def greedy_policy(self) -> np.ndarray:
-    return np.random.randint(low=0, high=self.mdp.num_actions, size=self.mdp.num_states)
+    action_prob = 1. / self.mdp.num_actions
+    return np.full(shape=(self.mdp.num_actions, self.mdp.num_states),
+                   fill_value=action_prob, dtype=np.float64)
 
   def get_estimates(self):
     return None
