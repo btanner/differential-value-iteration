@@ -104,7 +104,7 @@ def run(
       if diverged:
         converged_string = 'DIVERGED'
       print(
-        f'Average Time:{1000.*total_time/i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f} )')
+        f'Average Time:{1000.*total_time/i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f}')
       print('Returns (stdev)', end=':')
       for mean_return, std_return in zip(mean_returns, std_returns):
         print(f'{mean_return:.2f} ({std_return:.2f})', end=' ')
