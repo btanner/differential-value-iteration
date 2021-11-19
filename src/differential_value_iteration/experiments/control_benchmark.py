@@ -133,19 +133,15 @@ def measure_policy(iteration: int, alg: algorithm.Control, environment: structur
     print(f'\tPolicy: {policy_entries} everywhere.')
   else:
     if len(policy) > 15:
-      if final:
+      end_actions = np.unique(policy[15:])
+      if len(end_actions) == 1:
+        print(f'Policy: {policy[:15]} ... rest all {end_actions[0]}')
+      elif final:
         print(f'\nFinal Policy: {policy}')
       else:
-        end_actions = np.unique(policy[15:])
-        if len(end_actions) == 1:
-          print(f'Policy: {policy[:15]} ... rest all {end_actions[0]}')
-        else:
-          print(f'Policy: {policy[:15]}...')
+        print(f'Policy: {policy[:15]}...')
     else:
-      if len(policy) > 15 and len(np.unique(policy[15:])) == 1:
-        print(f'Policy: {policy[:15]} ... rest all {np.unique(policy[15:])[0]}')
-      else:
-        print(f'Policy: {policy}')
+      print(f'Policy: {policy}')
 
 
 def sample_return(policy, environment, start_state, length):
