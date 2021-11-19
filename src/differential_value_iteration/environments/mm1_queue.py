@@ -95,7 +95,7 @@ def create(arrival_rate: float, service_rate: float, admit_reward: float,
         if action == CONTINUE:
           rewards[action, s] = (-cost_fn(jobs_waiting=num_queued)) * joint_rate
         elif action == ADMIT:
-          # Small penality for invalid action.
+          # Small penalty for invalid action.
           rewards[action, s] = (-cost_fn(
             jobs_waiting=num_queued + 1)) * joint_rate
 
