@@ -11,6 +11,7 @@ from absl import flags
 from differential_value_iteration.algorithms import algorithm
 from differential_value_iteration.algorithms import dvi
 from differential_value_iteration.algorithms import mdvi
+from differential_value_iteration.algorithms import random
 from differential_value_iteration.algorithms import rvi
 from differential_value_iteration.environments import garet
 from differential_value_iteration.environments import micro
@@ -28,9 +29,12 @@ _32bit = flags.DEFINE_bool('32bit', False,
 _CONVERGENCE_TOLERANCE = flags.DEFINE_float('convergence_tolerance', 1e-5,
                                             'Tolerance for convergence.')
 
-flags.DEFINE_bool('dvi', True, 'Run Differential Value Iteration')
-flags.DEFINE_bool('mdvi', True, 'Run Multichain Differential Value Iteration')
-flags.DEFINE_bool('rvi', True, 'Run Relative Value Iteration')
+_DVI = flags.DEFINE_bool('dvi', True, 'Run Differential Value Iteration')
+_MDVI = flags.DEFINE_bool('mdvi', True, 'Run Multichain Differential Value Iteration')
+_RVI = flags.DEFINE_bool('rvi', True, 'Run Relative Value Iteration')
+_RANDOM = flags.DEFINE_bool('random', True, 'Use Random Agent')
+
+_EVAL_ALL_STATES = flags.DEFINE_bool('all_states', False, 'Evaluate all starting states')
 
 # Environment flags
 _MDP1 = flags.DEFINE_bool('mdp1', True, 'Include MDP1 in benchmark.')
@@ -48,7 +52,8 @@ def run(
     algorithm_constructors: Sequence[Callable[..., algorithm.Evaluation]],
     num_iters: int,
     convergence_tolerance: float,
-    synchronized: bool):
+    synchronized: bool,
+    eval_all_states: bool):
   """Runs a list of algorithms on a list of environments and prints outcomes.
     Params:
       environments: Sequence of Markov Decision Processes to run.
@@ -58,6 +63,7 @@ def run(
       num_iters: Total number of iterations for benchmark.
       convergence_tolerance: Criteria for convergence.
       synchronized: Run algorithms in synchronized or asynchronous mode.
+      eval_all_states: Empirically test return from all states (or just S0).
       """
   for environment in environments:
     print(f'\nEnvironment: {environment.name}\n----------------------')
@@ -72,7 +78,7 @@ def run(
                                   synchronized=synchronized)
       module_name = alg.__class__.__module__.split('.')[-1]
       alg_name = module_name + '::' + alg.__class__.__name__
-      print(f'{alg_name}', end='\t')
+      print(f'\n{alg_name}', end='\t')
       for i in range(num_iters):
         change_summary = 0.
         for _ in range(inner_loop_range):
@@ -93,36 +99,46 @@ def run(
           converged = True
           break
       converged_string = 'YES\t' if converged else 'NO\t'
-      mean_return, std_return = estimate_policy_average_reward(alg, environment)
+      mean_returns, std_returns = estimate_policy_average_reward(alg, environment, eval_all_states)
 
       if diverged:
         converged_string = 'DIVERGED'
       print(
-        f'Average Time:{1000.*total_time/i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f} Avg Reward: {mean_return:.2f} ({std_return:.2f})')
+        f'Average Time:{1000.*total_time/i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f} )')
+      print('Returns (stdev)', end=':')
+      for mean_return, std_return in zip(mean_returns, std_returns):
+        print(f'{mean_return:.2f} ({std_return:.2f})', end=' ')
+      print()
       print(f'Policy: {alg.greedy_policy()}')
-      # print(f'Estimates: {alg.get_estimates()}')
 
-def estimate_policy_average_reward(alg, environment):
+def estimate_policy_average_reward(alg, environment, all_states: bool):
   policy = alg.greedy_policy()
   mc = environment.as_markov_chain_from_deterministic_policy(policy)
   sim_length = 1000
   num_reps = 100
-  starting_state = 0
-  returns = np.zeros(num_reps, dtype=np.float64)
+  starting_states = np.arange(environment.num_states) if all_states else [0]
 
-  # Generatate sequences of states under greedy policy.
-  simulation_results = mc.simulate(ts_length=sim_length,
-                                   init=starting_state,
-                                   num_reps=num_reps)
-  for i, states_visited in enumerate(simulation_results):
-    if max(states_visited) > len(policy):
-      print(f'apparently visited states: {states_visited} but have policy: {policy}')
-    # If this crashes, then mc.simulate is sampling invalid states b/c CDFS don't sum to 1.
-    # In that case, check if any states_visited are == num_states, and if so, resample.
-    actions_taken = policy[states_visited]
-    rewards_seen = [environment.rewards[a, s] for a, s in zip (actions_taken, states_visited)]
-    returns[i] = np.mean(rewards_seen)
-  return np.mean(returns), np.std(returns)
+  means = np.zeros(len(starting_states), dtype=np.float64)
+  stdevs = np.zeros(len(starting_states), dtype=np.float64)
+
+
+  for starting_state in starting_states:
+    returns = np.zeros(num_reps, dtype=np.float64)
+    # Generatate sequences of states under greedy policy.
+    simulation_results = mc.simulate(ts_length=sim_length,
+                                     init=starting_state,
+                                     num_reps=num_reps)
+    for i, states_visited in enumerate(simulation_results):
+      if max(states_visited) > len(policy):
+        print(f'apparently visited states: {states_visited} but have policy: {policy}')
+      # If this crashes, then mc.simulate is sampling invalid states b/c CDFS don't sum to 1.
+      # In that case, check if any states_visited are == num_states, and if so, resample.
+      actions_taken = policy[states_visited]
+      rewards_seen = [environment.rewards[a, s] for a, s in zip (actions_taken, states_visited)]
+      returns[i] = np.mean(rewards_seen)
+    means[starting_state] = np.mean(returns)
+    stdevs[starting_state] = np.std(returns)
+  return means, stdevs
 
 
 
@@ -134,14 +150,18 @@ def main(argv):
   algorithm_constructors = []
 
   # Create constructors that only depends on params common to all algorithms.
-  if FLAGS.dvi:
+  if _RANDOM.value:
+    random_algorithm = functools.partial(random.Control)
+    algorithm_constructors.append(random_algorithm)
+
+  if _DVI.value:
     dvi_algorithm = functools.partial(dvi.Control,
                                       step_size=1.,
                                       beta=1.,
                                       initial_r_bar=0.)
     algorithm_constructors.append(dvi_algorithm)
 
-  if FLAGS.mdvi:
+  if _MDVI.value:
     mdvi_algorithm_1 = functools.partial(mdvi.Control1,
                                          step_size=1.,
                                          beta=1.,
@@ -154,7 +174,7 @@ def main(argv):
                                          initial_r_bar=0.,
                                          threshold=.01) # not used.
     algorithm_constructors.append(mdvi_algorithm_2)
-  if FLAGS.rvi:
+  if _RVI.value:
     rvi_algorithm = functools.partial(rvi.Control,
                                       step_size=.1,
                                       reference_index=0)
@@ -187,7 +207,8 @@ def main(argv):
       algorithm_constructors=algorithm_constructors,
       num_iters=_NUM_ITERS.value,
       convergence_tolerance=_CONVERGENCE_TOLERANCE.value,
-      synchronized=_SYNCHRONIZED.value)
+      synchronized=_SYNCHRONIZED.value,
+      eval_all_states=_EVAL_ALL_STATES.value)
 
 
 if __name__ == '__main__':
