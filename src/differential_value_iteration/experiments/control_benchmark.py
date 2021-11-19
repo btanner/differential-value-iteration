@@ -56,7 +56,8 @@ def run(
     num_iters: int,
     convergence_tolerance: float,
     synchronized: bool,
-    eval_all_states: bool):
+    eval_all_states: bool,
+    measure_iters: Sequence[int]):
   """Runs a list of algorithms on a list of environments and prints outcomes.
     Params:
       environments: Sequence of Markov Decision Processes to run.
@@ -67,6 +68,8 @@ def run(
       convergence_tolerance: Criteria for convergence.
       synchronized: Run algorithms in synchronized or asynchronous mode.
       eval_all_states: Empirically test return from all states (or just S0).
+      measure_iters: Which iterations to evaluate policy on. Final policy is
+        always evaluate.
       """
   for environment in environments:
     print(f'\nEnvironment: {environment.name}\n----------------------')
@@ -81,8 +84,10 @@ def run(
                                   synchronized=synchronized)
       module_name = alg.__class__.__module__.split('.')[-1]
       alg_name = module_name + '::' + alg.__class__.__name__
-      print(f'\n{alg_name}', end='\t')
+      print(f'\n{alg_name}')
       for i in range(num_iters):
+        if i in measure_iters:
+          measure_policy(i, alg, environment, eval_all_states, final=False)
         change_summary = 0.
         for _ in range(inner_loop_range):
           start_time = time.time()
@@ -103,24 +108,40 @@ def run(
           break
       converged_string = 'YES\t' if converged else 'NO\t'
 
-      policy = alg.greedy_policy()
-      mean_returns, std_returns = estimate_policy_average_reward_new(policy,
-                                                                     environment,
-                                                                     eval_all_states)
+
+      measure_policy(i, alg, environment, eval_all_states, final=True)
 
       if diverged:
         converged_string = 'DIVERGED'
       print(
-          f'Average Time:{1000. * total_time / i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f}')
-      print('Returns', end=':')
-      for mean_return, std_return in zip(mean_returns, std_returns):
-        print(f'{mean_return:.2f} ({std_return:.2f})', end=' ')
-      print()
-      policy_entries = np.unique(policy)
-      if len(policy_entries) == 1:
-        print(f'Policy: {policy_entries} everywhere.')
+          f'Summary: Average Time:{1000. * total_time / i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f}')
+
+def measure_policy(iteration: int, alg: algorithm.Control, environment: structure.MarkovDecisionProcess, eval_all_states: bool, final: bool):
+  policy = alg.greedy_policy()
+  mean_returns, std_returns = estimate_policy_average_reward(policy,
+                                                             environment,
+                                                             eval_all_states)
+  if final:
+    print('Evaluation after final iter', end='\t')
+  else:
+    print('Evaluation at iteration:', iteration, end='\t')
+  print('Returns', end=':')
+  for mean_return, std_return in zip(mean_returns, std_returns):
+    print(f'{mean_return:.2f} ({std_return:.2f})', end=' ')
+  policy_entries = np.unique(policy)
+  if len(policy_entries) == 1:
+    print(f'\tPolicy: {policy_entries} everywhere.')
+  else:
+    if len(policy) > 15:
+      end_actions = np.unique(policy[15:])
+      if len(end_actions) == 1:
+        print(f'Policy: {policy[:15]} ... rest all {end_actions[0]}')
+      elif final:
+        print(f'\nFinal Policy: {policy}')
       else:
-        print(f'Policy: {policy}')
+        print(f'Policy: {policy[:15]}...')
+    else:
+      print(f'Policy: {policy}')
 
 
 def sample_return(policy, environment, start_state, length):
@@ -139,7 +160,7 @@ def sample_return(policy, environment, start_state, length):
   return total_return / length
 
 
-def estimate_policy_average_reward_new(policy, environment, all_states: bool):
+def estimate_policy_average_reward(policy, environment, all_states: bool):
   length = 1000
   num_reps = 100
   starting_states = np.arange(environment.num_states) if all_states else [0]
@@ -188,7 +209,7 @@ def main(argv):
     algorithm_constructors.append(mdvi_algorithm_2)
   if _RVI.value:
     rvi_algorithm = functools.partial(rvi.Control,
-                                      step_size=.1,
+                                      step_size=1.,
                                       reference_index=0)
     algorithm_constructors.append(rvi_algorithm)
 
@@ -212,6 +233,7 @@ def main(argv):
   if _MM1_1.value:
     environments.append(mm1_queue.MM1_QUEUE_1(dtype=problem_dtype))
 
+  measure_iters = [0, 1, 10, 50, 100, 200, 500, 1000, 5000, 10000, 25000]
   if not environments:
     raise ValueError('At least one environment required.')
 
@@ -220,7 +242,8 @@ def main(argv):
       num_iters=_NUM_ITERS.value,
       convergence_tolerance=_CONVERGENCE_TOLERANCE.value,
       synchronized=_SYNCHRONIZED.value,
-      eval_all_states=_EVAL_ALL_STATES.value)
+      eval_all_states=_EVAL_ALL_STATES.value,
+      measure_iters = measure_iters)
 
 
 if __name__ == '__main__':
