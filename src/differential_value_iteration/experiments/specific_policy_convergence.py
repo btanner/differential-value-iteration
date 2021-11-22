@@ -33,6 +33,7 @@ _MDVI = flags.DEFINE_bool('mdvi', True,
 _RVI = flags.DEFINE_bool('rvi', True, 'Run Relative Value Iteration')
 
 # Environment flags
+_GARET1 = flags.DEFINE_bool('garet1', True, 'Include GARET 1')
 _GARET2 = flags.DEFINE_bool('garet2', True, 'Include GARET 2')
 _MM1_1 = flags.DEFINE_bool('MM1_1', True, 'Include MM1 Queue 1')
 
@@ -56,7 +57,7 @@ def run(
   for environment in environments:
     initial_values = np.zeros(environment.num_states)
     inner_loop_range = 1 if synchronized else environment.num_states
-    print(f'Environment {environment.name}\n*********************************')
+    print(f'\nEnvironment {environment.name}\n----------------------')
     for algorithm_constructor in algorithm_constructors:
       alg = algorithm_constructor(mrp=environment,
                                   initial_values=initial_values,
@@ -116,6 +117,15 @@ def main(argv):
 
   environments = []
   problem_dtype = np.float32 if _32bit.value else np.float64
+  if _GARET1.value:
+    mdp = garet.GARET1(dtype=problem_dtype)
+    policy = (2, 1, 2, 2)
+    mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
+    environments.append(mrp)
+    policy = (2, 1, 2, 3)
+    mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
+    environments.append(mrp)
+
   if _GARET2.value:
     mdp = garet.GARET2(dtype=problem_dtype)
     policy = (11, 15, 5, 14)
@@ -124,6 +134,7 @@ def main(argv):
     policy = (11, 15, 7, 14)
     mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
     environments.append(mrp)
+
   if _MM1_1.value:
     mdp = mm1_queue.MM1_QUEUE_1(dtype=problem_dtype)
     policy = [0] * mdp.num_states
