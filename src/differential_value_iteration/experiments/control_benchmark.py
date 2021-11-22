@@ -85,9 +85,10 @@ def run(
       module_name = alg.__class__.__module__.split('.')[-1]
       alg_name = module_name + '::' + alg.__class__.__name__
       print(f'\n{alg_name}')
+      changes = [0.] # Dummy starting value.
       for i in range(num_iters):
         if i in measure_iters:
-          measure_policy(i, alg, environment, eval_all_states, final=False)
+          measure_policy(i, alg, environment, eval_all_states, last_change=np.mean(np.abs(changes)), final=False)
         change_summary = 0.
         for _ in range(inner_loop_range):
           start_time = time.time()
@@ -109,14 +110,14 @@ def run(
       converged_string = 'YES\t' if converged else 'NO\t'
 
 
-      measure_policy(i, alg, environment, eval_all_states, final=True)
+      measure_policy(i, alg, environment, eval_all_states, last_change=np.mean(np.abs(changes)), final=True)
 
       if diverged:
         converged_string = 'DIVERGED'
       print(
           f'Summary: Average Time:{1000. * total_time / i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f}')
 
-def measure_policy(iteration: int, alg: algorithm.Control, environment: structure.MarkovDecisionProcess, eval_all_states: bool, final: bool):
+def measure_policy(iteration: int, alg: algorithm.Control, environment: structure.MarkovDecisionProcess, eval_all_states: bool, last_change: float, final: bool):
   policy = alg.greedy_policy()
   mean_returns, std_returns = estimate_policy_average_reward(policy,
                                                              environment,
@@ -128,6 +129,8 @@ def measure_policy(iteration: int, alg: algorithm.Control, environment: structur
   print('Returns', end=':')
   for mean_return, std_return in zip(mean_returns, std_returns):
     print(f'{mean_return:.2f} ({std_return:.2f})', end=' ')
+
+  print(f'Last Change:{last_change:.5f}', end=' ')
   policy_entries = np.unique(policy)
   if len(policy_entries) == 1:
     print(f'\tPolicy: {policy_entries} everywhere.')
@@ -233,7 +236,7 @@ def main(argv):
   if _MM1_1.value:
     environments.append(mm1_queue.MM1_QUEUE_1(dtype=problem_dtype))
 
-  measure_iters = [0, 1, 10, 50, 100, 200, 500, 1000, 5000, 10000, 25000]
+  measure_iters = [0, 1, 10, 50, 100, 200, 500, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 50000, 1000000]
   if not environments:
     raise ValueError('At least one environment required.')
 

@@ -36,7 +36,11 @@ class MarkovRewardProcess:
 
     # Ensure transition probabilities sum to 1 for all states.
     state_probability_sums = self.transitions.sum(axis=-1)
-    failed_unity = np.where(state_probability_sums != 1., True, False)
+    state_probability_errors = np.abs(1 - state_probability_sums)
+    failed_unity = np.where(
+        state_probability_errors > _TRANSITION_SUM_TOLERANCE,
+        True,
+        False)
     num_invalid_states = np.sum(failed_unity)
     if num_invalid_states:
       bad_states = np.argwhere(failed_unity)
