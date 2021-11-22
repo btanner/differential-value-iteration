@@ -21,14 +21,14 @@ from differential_value_iteration.environments import structure
 
 FLAGS = flags.FLAGS
 _NUM_ITERS = flags.DEFINE_integer('num_iters', 1000,
-                                  'Number of iterations per algorithm.')
+                                  'Number of iterations per algorithm')
 _SYNCHRONIZED = flags.DEFINE_bool('synchronized', True,
-                                  'Run algorithms in synchronized mode.')
+                                  'Run algorithms in synchronized mode')
 _32bit = flags.DEFINE_bool('32bit', False,
-                           'Use 32 bit precision (default is 64 bit).')
+                           'Use 32 bit precision (default is 64 bit)')
 
 _CONVERGENCE_TOLERANCE = flags.DEFINE_float('convergence_tolerance', 1e-5,
-                                            'Tolerance for convergence.')
+                                            'Tolerance for convergence')
 
 _DVI = flags.DEFINE_bool('dvi', True, 'Run Differential Value Iteration')
 _MDVI = flags.DEFINE_bool('mdvi', True,
@@ -40,14 +40,14 @@ _EVAL_ALL_STATES = flags.DEFINE_bool('all_states', False,
                                      'Evaluate all starting states')
 
 # Environment flags
-_MDP1 = flags.DEFINE_bool('mdp1', True, 'Include MDP1 in benchmark.')
-_MDP2 = flags.DEFINE_bool('mdp2', True, 'Include MDP2 in benchmark.')
-_GARET1 = flags.DEFINE_bool('garet1', True, 'Include GARET 1 in benchmark.')
-_GARET2 = flags.DEFINE_bool('garet2', True, 'Include GARET 2 in benchmark.')
-_GARET3 = flags.DEFINE_bool('garet3', True, 'Include GARET 3 in benchmark.')
+_MDP1 = flags.DEFINE_bool('mdp1', True, 'Include MDP1 in benchmark')
+_MDP2 = flags.DEFINE_bool('mdp2', True, 'Include MDP2 in benchmark')
+_GARET1 = flags.DEFINE_bool('garet1', True, 'Include GARET 1 in benchmark')
+_GARET2 = flags.DEFINE_bool('garet2', True, 'Include GARET 2 in benchmark')
+_GARET3 = flags.DEFINE_bool('garet3', True, 'Include GARET 3 in benchmark')
 _GARET_100 = flags.DEFINE_bool('garet_100', True,
                                'Include GARET 100 in benchmark.')
-_MM1_1 = flags.DEFINE_bool('MM1_1', True, 'Include MM1 Queue 1 in benchmark.')
+_MM1_1 = flags.DEFINE_bool('MM1_1', True, 'Include MM1 Queue 1 in benchmark')
 
 
 def run(

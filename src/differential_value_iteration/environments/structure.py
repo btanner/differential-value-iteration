@@ -111,6 +111,16 @@ class MarkovDecisionProcess:
     policy_transitions = self.transitions[policy, state_range]
     return quantecon.markov.MarkovChain(policy_transitions)
 
+  def as_markov_reward_process_from_deterministic_policy(self,
+      policy: Sequence[int]) -> MarkovRewardProcess:
+    """Returns Markov Chain implied by transitions and deterministic policy."""
+    state_range = np.arange(0, self.num_states)
+    policy_transitions = self.transitions[policy, state_range]
+    policy_expected_rewards = self.rewards[policy, state_range]
+    return MarkovRewardProcess(transitions=policy_transitions,
+                               rewards=policy_expected_rewards,
+                               name=f'MRP_Policy{policy}_from_{self.name}')
+
   def as_markov_chain_from_stochastic_policy(self,
       policy: np.ndarray) -> quantecon.MarkovChain:
     """Returns Markov Chain implied by transitions and policy.
