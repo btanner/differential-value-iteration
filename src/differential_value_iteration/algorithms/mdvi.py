@@ -7,6 +7,8 @@ from differential_value_iteration.algorithms import algorithm
 from differential_value_iteration.environments import structure
 
 
+_DEBUG_ITER = -1
+
 class Evaluation(algorithm.Evaluation):
   """Multichain DVI for prediction, section 3.1.1 in paper."""
 
@@ -112,6 +114,7 @@ class Control1(algorithm.Control):
     self.beta = mdp.rewards.dtype.type(beta)
     self.threshold = mdp.rewards.dtype.type(threshold)
     self.index = 0
+    self.iteration = 0
     self.synchronized = synchronized
     self.current_values = None
     self.r_bar = None
@@ -120,6 +123,7 @@ class Control1(algorithm.Control):
   def reset(self):
     self.current_values = self.initial_values.copy()
     self.r_bar = self.initial_r_bar.copy()
+    self.iteration = 0
 
   def diverged(self) -> bool:
     if not np.isfinite(self.current_values).all():
@@ -144,6 +148,7 @@ class Control1(algorithm.Control):
     return self.update_async_orig()
 
   def update(self) -> np.ndarray:
+    self.iteration += 1
     if self.synchronized:
       return self.update_sync()
     return self.update_async()
@@ -165,6 +170,10 @@ class Control1(algorithm.Control):
             self.mdp.transitions[max_actions[i]][s], self.current_values) - \
                     self.current_values[s]
       delta[s] = np.max(temp_a)
+      if self.iteration == _DEBUG_ITER:
+        print(f'orig: s:{s} {max(temp_s_by_a[s])-self.threshold} action_vals:{temp_s_by_a[s]} max_actions:{max_actions} temp_a shape:{temp_a.shape} temp_a:{temp_a} {np.max(temp_a)} ')
+        print(f'next state probs: {self.mdp.transitions[:, s]}')
+
     new_current_values = self.current_values.copy() + self.step_size * delta
     new_r_bar = r_bar.copy() + self.beta * delta
     return delta, new_current_values, new_r_bar
@@ -176,10 +185,19 @@ class Control1(algorithm.Control):
     changes = np.zeros(self.mdp.num_states, dtype=self.mdp.rewards.dtype)
     for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), r_bar):
       max_actions = np.argwhere(action_vals > max(action_vals) - self.threshold)
+      immediate_rewards = self.mdp.rewards[max_actions, s]
+      this_state_reward_rate = r_bar_s
+      next_values_per_action = np.dot(self.mdp.transitions[max_actions, s], self.current_values)
       temp_a = self.mdp.rewards[max_actions, s] - r_bar_s + np.dot(
           self.mdp.transitions[max_actions, s], self.current_values) - \
                self.current_values[s]
       changes[s] = np.max(temp_a)
+      if self.iteration == _DEBUG_ITER:
+        print(f'tanno: s:{s} {max(action_vals)-self.threshold} action_vals:{action_vals} max_actions:{max_actions} temp_a shape:{temp_a.shape} temp_a:{temp_a} {np.max(temp_a)} ')
+        print(f'immediate rewards: {immediate_rewards} ({self.mdp.rewards[:, s]})')
+        print(f'this_state_reward_rate: {this_state_reward_rate}')
+        print(f'next_values_per_action: {next_values_per_action}')
+        print(f'self.current_values[s]: {self.current_values[s]}')
     new_current_values = self.current_values.copy() + self.step_size * changes
     new_r_bar = r_bar.copy() + self.beta * changes
     return changes, new_current_values, new_r_bar

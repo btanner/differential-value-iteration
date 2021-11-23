@@ -125,6 +125,9 @@ def main(argv):
     policy = (2, 1, 2, 3)
     mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
     environments.append(mrp)
+    policy = (2, 1, 1, 3)
+    mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
+    environments.append(mrp)
 
   if _GARET2.value:
     mdp = garet.GARET2(dtype=problem_dtype)

@@ -42,6 +42,7 @@ _EVAL_ALL_STATES = flags.DEFINE_bool('all_states', False,
 # Environment flags
 _MDP1 = flags.DEFINE_bool('mdp1', True, 'Include MDP1 in benchmark')
 _MDP2 = flags.DEFINE_bool('mdp2', True, 'Include MDP2 in benchmark')
+_MDP4 = flags.DEFINE_bool('mdp4', True, 'Include MDP4 in benchmark')
 _GARET1 = flags.DEFINE_bool('garet1', True, 'Include GARET 1 in benchmark')
 _GARET2 = flags.DEFINE_bool('garet2', True, 'Include GARET 2 in benchmark')
 _GARET3 = flags.DEFINE_bool('garet3', True, 'Include GARET 3 in benchmark')
@@ -86,6 +87,9 @@ def run(
       alg_name = module_name + '::' + alg.__class__.__name__
       print(f'\n{alg_name}')
       changes = [0.] # Dummy starting value.
+      last_policy = None
+      policy_switches = 0
+      all_late_policies = set()
       for i in range(num_iters):
         if i in measure_iters:
           measure_policy(i, alg, environment, eval_all_states, last_change=np.mean(np.abs(changes)), final=False)
@@ -99,6 +103,16 @@ def run(
           change_summary += np.mean(np.abs(changes))
         # Basically divide by num_states if running async.
         change_summary /= inner_loop_range
+        if i == 10000:
+          last_policy = str(alg.greedy_policy())
+          all_late_policies.add(last_policy)
+        if i > 10000:
+          this_policy = str(alg.greedy_policy())
+          if this_policy != last_policy:
+            policy_switches += 1
+            last_policy = this_policy
+            all_late_policies.add(last_policy)
+
         if alg.diverged():
           diverged = True
           converged = False
@@ -116,6 +130,8 @@ def run(
         converged_string = 'DIVERGED'
       print(
           f'Summary: Average Time:{1000. * total_time / i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f}')
+      if not converged:
+        print(f'After iter 10000, policy switched:{policy_switches} times and saw these policies:{all_late_policies}')
 
 def measure_policy(iteration: int, alg: algorithm.Control, environment: structure.MarkovDecisionProcess, eval_all_states: bool, last_change: float, final: bool):
   policy = alg.greedy_policy()
@@ -165,7 +181,7 @@ def sample_return(policy, environment, start_state, length):
 
 def estimate_policy_average_reward(policy, environment, all_states: bool):
   length = 1000
-  num_reps = 100
+  num_reps = 10
   starting_states = np.arange(environment.num_states) if all_states else [0]
 
   means = np.zeros(len(starting_states), dtype=np.float64)
@@ -225,6 +241,8 @@ def main(argv):
     environments.append(micro.create_mdp1(dtype=problem_dtype))
   if _MDP2.value:
     environments.append(micro.create_mdp2(dtype=problem_dtype))
+  if _MDP4.value:
+    environments.append(micro.create_mdp4(dtype=problem_dtype))
   if _GARET1.value:
     environments.append(garet.GARET1(dtype=problem_dtype))
   if _GARET2.value:
@@ -236,7 +254,8 @@ def main(argv):
   if _MM1_1.value:
     environments.append(mm1_queue.MM1_QUEUE_1(dtype=problem_dtype))
 
-  measure_iters = [0, 1, 10, 50, 100, 200, 500, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 50000, 1000000]
+  # measure_iters = [0, 1, 10, 50, 100, 200, 500, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 50000, 1000000]
+  measure_iters = [25000, 50000, 100000, 250000, 50000, 1000000]
   if not environments:
     raise ValueError('At least one environment required.')
 
