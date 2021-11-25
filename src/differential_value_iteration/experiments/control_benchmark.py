@@ -214,12 +214,16 @@ def main(argv):
     algorithm_constructors.append(dvi_algorithm)
 
   if _MDVI.value:
-    mdvi_algorithm_1 = functools.partial(mdvi.Control1,
-                                         step_size=1.,
-                                         beta=1.,
-                                         initial_r_bar=0.,
-                                         threshold=.01)
-    algorithm_constructors.append(mdvi_algorithm_1)
+    ss = [1.] # [.1, .25, .5, 1., 2.]
+    bs = [1.] # [.1, .25, .5, 1., 2.]
+    for s in ss:
+      for b in bs:
+        mdvi_algorithm_1 = functools.partial(mdvi.Control1,
+                                             step_size=s,
+                                             beta=b,
+                                             initial_r_bar=0.,
+                                             threshold=.01)
+        algorithm_constructors.append(mdvi_algorithm_1)
     mdvi_algorithm_2 = functools.partial(mdvi.Control2,
                                          step_size=1.,
                                          beta=1.,
