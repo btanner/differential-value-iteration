@@ -15,6 +15,7 @@ import dataclasses
 import itertools
 import multiprocessing
 import os
+import glob
 import time
 from datetime import datetime
 from typing import Any
@@ -30,7 +31,7 @@ from absl import flags
 
 FLAGS = flags.FLAGS
 _LOAD_EXPERIMENT_ID = flags.DEFINE_string('experiment_name', '', '')
-
+_CLEAR_PAST_RESULTS = flags.DEFINE_bool('clear_past_results', False, 'Erase previous results.')
 
 from differential_value_iteration.algorithms import dvi
 from differential_value_iteration.environments import micro
@@ -51,7 +52,7 @@ class Work:
 
 def experiment_fn(agent, num_iterations: int):
   for i in range(num_iterations):
-    time.sleep(.01)
+    time.sleep(.025)
   return {'iters':i}
 
 
@@ -66,8 +67,10 @@ def do_work(work: Work):
 
 
 def generate_work() -> Sequence[Work]:
-  step_sizes = [1., .9, .5, .2, .3, .5]
-  betas = [1., .1, .5, .2, .8, .1, .1, .1, .1]
+  step_sizes = [1., .9, .5,]
+  betas = [1., .1, .5, .2,]
+  # step_sizes = [1., .9, .5, .2, .3, .5]
+  # betas = [1., .1, .5, .2, .8, .1, .1, .1, .1]
   initial_r_bars = [0.]
   synchronized = [False]
 
@@ -89,12 +92,28 @@ def generate_work() -> Sequence[Work]:
 
 def main(argv):
 
+  logging.set_verbosity(logging.DEBUG)
+  logging.info('info')
+  logging.debug('debug')
+
   # Should use a flag-settable prefix.
   results_dirname = 'results'
   results_path = os.path.join(os.getcwd(), results_dirname)
-  print(f'Results path will be:{results_path}')
+  logging.debug('Results path will be:%s',results_path)
   if os.path.exists(results_path):
-    print(f'Results path exists already.')
+    print('Results path exists.')
+    logging.debug('Results path exists already.')
+    print(_CLEAR_PAST_RESULTS.value)
+    if _CLEAR_PAST_RESULTS.value:
+      logging.debug('Clearing existing results.')
+      results_files_path = os.path.join(results_path, '*.results')
+      results_files = glob.glob(results_files_path)
+      for f in results_files:
+        os.unlink(f)
+      status_files_path = os.path.join(results_path, '*.status')
+      status_files = glob.glob(status_files_path)
+      for f in status_files:
+        os.unlink(f)
   else:
     print(f'Creating results path')
     os.makedirs(results_path, exist_ok=True)
@@ -113,7 +132,8 @@ def main(argv):
   experiment_params = conductor.ExperimentParams(results_path=results_path,
                                                  experiment_id=experiment_id,
                                                  work_fn=do_work)
-  experiment_runner = conductor.Conductor(experiment_params=experiment_params)
+  experiment_runner = conductor.Conductor(experiment_params=experiment_params, num_processes=2)
+
   if resume:
     experiment_runner.resume()
   else:
