@@ -82,11 +82,10 @@ class Result:
     """Container class for storing results of work."""
 
     job_id: int
-    experiment_id: str
+    experiment_name: str
 
     work_result: Any  # TODO(tanno): Might be nice to constrain this somehow.
     duration: float
-
 
 
 @dataclasses.dataclass
@@ -94,9 +93,11 @@ class WorkPlan:
     all_jobs: Dict[int, Job]
     job_status: multiprocessing.Array
     status_file_path: os.PathLike
-    
+
     @classmethod
-    def from_work(cls, work: Sequence[Any], status_file_path: os.PathLike) -> "WorkPlan":
+    def from_work(
+        cls, work: Sequence[Any], status_file_path: os.PathLike
+    ) -> "WorkPlan":
         """Create an WorkPlan from a sequence of work."""
         all_jobs = {}
         for job_id, w in enumerate(work):
@@ -105,32 +106,37 @@ class WorkPlan:
         return cls(
             all_jobs=all_jobs,
             job_status=multiprocessing.Array(_STATUS_TYPE, len(all_jobs), lock=True),
-            status_file_path=status_file_path
+            status_file_path=status_file_path,
         )
 
     @classmethod
     def from_checkpoint(cls, status_file_path: os.PathLike) -> Optional["WorkPlan"]:
         """Loads a WorkPlan from a saved checkpoint so we can resume it."""
         if not os.path.isfile(status_file_path):
-          logging.info("No WorkPlan file found to load.")
-          return None
+            logging.info("No WorkPlan file found to load.")
+            return None
         try:
-          with open(status_file_path, "rb") as infile:
-              all_jobs = pickle.load(infile)
-              job_status_local = pickle.load(infile)
-              infile.close()
-          for job_id, job in all_jobs.items():
-              this_job_status = JobStatus(job_status_local[job_id])
-              job.log_event(
-                  event_type="loaded_from_file",
-                  description=f"Status: {this_job_status.name} Prior Events:{len(job.history)}",
-              )
-          status_shared = multiprocessing.Array(_STATUS_TYPE, job_status_local, lock=True)
-          return cls(all_jobs=all_jobs, job_status=status_shared, status_file_path=status_file_path)
+            with open(status_file_path, "rb") as infile:
+                all_jobs = pickle.load(infile)
+                job_status_local = pickle.load(infile)
+                infile.close()
+            for job_id, job in all_jobs.items():
+                this_job_status = JobStatus(job_status_local[job_id])
+                job.log_event(
+                    event_type="loaded_from_file",
+                    description=f"Status: {this_job_status.name} Prior Events:{len(job.history)}",
+                )
+            status_shared = multiprocessing.Array(
+                _STATUS_TYPE, job_status_local, lock=True
+            )
+            return cls(
+                all_jobs=all_jobs,
+                job_status=status_shared,
+                status_file_path=status_file_path,
+            )
         except Exception as e:
-          logging.error("Failed to load WorkPlan because %s (%s)", e, type(e))
-          return None
-
+            logging.error("Failed to load WorkPlan because %s (%s)", e, type(e))
+            return None
 
     def queue_ready_jobs(self, job_queue: multiprocessing.Queue):
         self.job_status.get_lock().acquire()
