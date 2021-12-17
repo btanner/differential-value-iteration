@@ -13,8 +13,7 @@ No effort is made to continue or resume partial jobs.
 It is possible that rarely a piece of work may end with its results recorded twice because of timing when
 an experiment is stopped midway and later resumed.
 """
-import enum
-import array
+import ctypes
 import dataclasses
 import multiprocessing
 import os
@@ -23,16 +22,9 @@ import queue
 import signal
 import sys
 import time
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Optional
-from typing import Sequence
-from typing import Set
-import ctypes
-import numpy as np
+from typing import Any, Callable, Optional, Sequence
+
 from absl import logging
-import datetime
 from differential_value_iteration.experiments.minimanager import job
 
 _EMPTY_SLEEP_TIME = 2
@@ -136,9 +128,9 @@ class Conductor:
         self._setup_subprocess_details(process_name_prefix="Work")
         while not self.shutdown_signal.value:
             try:
-                job = self.jobs.get_nowait()
-                self.plan.set_job_starting(job.id)
-                result = self._do_work(job)
+                j = self.jobs.get_nowait()
+                self.plan.set_job_starting(j.job_id)
+                result = self._do_work(j)
                 self.results.put(result)
             except queue.Empty:
                 # Due to Multiprocess buffering, queue.Empty can be a false positive.
@@ -154,9 +146,12 @@ class Conductor:
                     )
                     time.sleep(_EMPTY_SLEEP_TIME)
                     continue
-            except Exception as e:
+            except Exception as exception:
                 logging.error(
-                    "%s: Got exception: %s (%s).", self.process_name, e, type(e)
+                    "%s: Got exception: %s (%s).",
+                    self.process_name,
+                    exception,
+                    type(exception),
                 )
                 break
         if self.shutdown_signal.value:
@@ -229,16 +224,16 @@ class Conductor:
             logging.info("%s Completing.", self.process_name)
 
     def _do_work(self, j: job.Job):
-        logging.debug("starting do_work on job %s", j.id)
+        logging.debug("starting do_work on job %s", j.job_id)
         start_time = time.time()
         work_results = self.experiment_params.work_fn(j.work)
         result = job.Result(
-            job_id=j.id,
+            job_id=j.job_id,
             experiment_name=self.experiment_params.experiment_name,
             work_result=work_results,
             duration=time.time() - start_time,
         )
-        logging.debug("completed do_work on job %s", j.id)
+        logging.debug("completed do_work on job %s", j.job_id)
         return result
 
     def _handle_shutdown(self):

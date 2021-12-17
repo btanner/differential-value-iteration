@@ -22,13 +22,13 @@ def clear_old_saves(save_path: os.PathLike):
     logging.debug("Clearing existing results.")
     results_files_path = os.path.join(save_path, "*.results")
     results_files = glob.glob(results_files_path)
-    for f in results_files:
-        os.unlink(f)
+    for file in results_files:
+        os.unlink(file)
         status_removed += 1
     status_files_path = os.path.join(save_path, "*.status")
     status_files = glob.glob(status_files_path)
-    for f in status_files:
-        os.unlink(f)
+    for file in status_files:
+        os.unlink(file)
         results_removed += 1
     logging.debug(
         "Removed %d result files and %d status files.", results_removed, status_removed
@@ -52,6 +52,6 @@ def make_experiment_name(
             )
         experiment_name = command_line_value
     else:
-        now = datetime.now().strftime("%Y_%d_%m_%H%M%S")
+        now = datetime.datetime().now().strftime("%Y_%d_%m_%H%M%S")
         experiment_name = new_experiment_name_prefix + "_" + now
     return experiment_name

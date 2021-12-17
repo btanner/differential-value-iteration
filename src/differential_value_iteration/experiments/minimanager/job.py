@@ -1,24 +1,14 @@
 """Support classes for conductor-based experiments."""
-import enum
 import array
 import dataclasses
+import datetime
+import enum
 import multiprocessing
 import os
 import pickle
-import queue
-import signal
-import sys
-import time
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Optional
-from typing import Sequence
-from typing import Set
-import ctypes
-import numpy as np
+from typing import Any, Dict, Optional, Sequence
+
 from absl import logging
-import datetime
 
 
 class JobStatus(enum.Enum):
@@ -53,13 +43,13 @@ class JobEvent:
 class Job:
     """Container class for storing and tracking work internally."""
 
-    id: int
+    job_id: int
     work: Any  # TODO(tanno): Might be nice to constrain this somehow.
     history: Sequence[JobEvent]
 
     @classmethod
-    def create(cls, id: int, work: Any) -> "Job":
-        return cls(id=id, work=work, history=[JobEvent.create(event_type="created")])
+    def create(cls, job_id: int, work: Any) -> "Job":
+        return cls(job_id=job_id, work=work, history=[JobEvent.create(event_type="created")])
 
     def log_start(self, description: str = ""):
         self.history.append(
@@ -101,7 +91,7 @@ class WorkPlan:
         """Create an WorkPlan from a sequence of work."""
         all_jobs = {}
         for job_id, w in enumerate(work):
-            all_jobs[job_id] = Job.create(id=job_id, work=w)
+            all_jobs[job_id] = Job.create(job_id=job_id, work=w)
 
         return cls(
             all_jobs=all_jobs,
