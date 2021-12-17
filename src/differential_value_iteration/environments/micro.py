@@ -115,8 +115,43 @@ def create_mdp3(dtype: np.dtype) -> structure.MarkovDecisionProcess:
           [1., 2., 3.],  # first action
           [0., 0., 0.]  # second action
       ], dtype=dtype),
-      name=f'mdp2 ({dtype.__name__})',
+      name=f'mdp3 ({dtype.__name__})',
   )
+
+def create_mdp4(dtype: np.dtype) -> structure.MarkovDecisionProcess:
+  """Creates a 4-state MDP, maybe a MDVI Control 1 counter example.
+   Args:
+     dtype: Dtype for reward/transition matrices: np.float32/np.float64
+
+   Returns:
+     The MDP.
+   """
+  return structure.MarkovDecisionProcess(
+        transitions=np.array([
+            # First Action (continue)
+            [[0.5, 0.5, 0.,  0.,  0.,  0.,   0., ],
+             [0.5, 0.5, 0.,  0.,  0.,  0.,   0., ],
+             [0.5, 0.,  0.,  0.5, 0.,  0.,   0., ],
+             [0.5, 0.,  0.,  0.5, 0.,  0.,   0., ],
+             [0.,  0.,  0.5, 0.,  0.,  0.5,  0., ],
+             [0.,  0.,  0.5, 0.,  0.,  0.5,  0., ],
+             [0.,  0.,  0.,  0.,  0.5, 0.,   0.5,]],
+            # Second Action (admit)
+            [[0.5, 0.5, 0.,  0.,  0.,  0.,   0., ],
+             [0.5, 0.,  0.,  0.5, 0.,  0.,   0., ],
+             [0.5, 0.,  0.,  0.5, 0.,  0.,   0., ],
+             [0.,  0.,  0.5, 0.,  0.,  0.5,  0., ],
+             [0.,  0.,  0.5, 0.,  0.,  0.5,  0., ],
+             [0.,  0.,  0.,  0.,  0.5, 0.,   0.5,],
+             [0.,  0.,  0.,  0.,  0.5,  0.,  0.5,]],
+            ], dtype=dtype),
+        rewards=np.array([
+            [ 0.,  0., -1., -1., -2., -2.,  -3.],  # first action (continue)
+            [-1.,  9., -2.,  8., -3.,  7.,  -4.]  # second action (admit)
+        ], dtype=dtype),
+        name=f'mdp4 ({dtype.__name__})',
+    )
+
 
 
 # Remove these soon.

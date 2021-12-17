@@ -161,9 +161,17 @@ def create(arrival_rate: float, service_rate: float, admit_reward: float,
 
 
 MM1_QUEUE_1 = functools.partial(create,
-                                arrival_rate=5.,
-                                service_rate=5.,
-                                admit_reward=12.,
+                                arrival_rate=1.,
+                                service_rate=1.,
+                                admit_reward=10.,
                                 cost_fn=functools.partial(linear_cost_fn,
                                                           cost_constant=1.),
-                                max_stored_jobs=20)
+                                max_stored_jobs=4)
+#
+# MM1_QUEUE_1 = functools.partial(create,
+#                                 arrival_rate=5.,
+#                                 service_rate=5.,
+#                                 admit_reward=12.,
+#                                 cost_fn=functools.partial(linear_cost_fn,
+#                                                           cost_constant=1.),
+#                                 max_stored_jobs=10)
