@@ -1,18 +1,19 @@
-'''Provides basic multi-processing experiment management.
+"""Provides basic multi-processing experiment management.
 
 Work is submitted to the conductor.
 
 This conductor spawns processes and executes that work in semi-sequential order.
 
-Results will be pickled into a binary 
-files. The conductor also periodically serializes the overall state to a file so that a long-running series of 
+Results will be pickled into a binary
+files. The conductor also periodically serializes the overall state to a file so that a long-running series of
 work can be resumed in case of the experiment being killed or crashing.
 
 No effort is made to continue or resume partial jobs.
 
-It is possible that rarely a piece of work may end with its results recorded twice because of timing when 
+It is possible that rarely a piece of work may end with its results recorded twice because of timing when
 an experiment is stopped midway and later resumed.
-'''
+"""
+import enum
 import array
 import dataclasses
 import multiprocessing
@@ -32,316 +33,260 @@ import ctypes
 import numpy as np
 from absl import logging
 import datetime
+from differential_value_iteration.experiments.minimanager import job
+
 _EMPTY_SLEEP_TIME = 2
-
-import enum
-
-class JobStatus(enum.Enum):
-  READY = 0
-  ACTIVE = 1
-  COMPLETE = 2
-
-_STATUS_TYPE = 'H'  # Shared memory array type - (unsigned short).
-
-@dataclasses.dataclass
-class JobEvent:
-  '''Store diagnostic info about jobs.'''
-  timestamp: datetime.datetime
-  worker_name: str
-  event_type: str
-  description: str
-
-
-@dataclasses.dataclass
-class Job:
-  '''Container class for storing and tracking work internally.'''
-  id: int
-  work: Any  # TODO(tanno): Might be nice to constrain this somehow.
-  history: Sequence[JobEvent]
-
-
-@dataclasses.dataclass
-class Result:
-  '''Container class for storing results of work.'''
-  job: Job
-  work_result: Any  # TODO(tanno): Might be nice to constrain this somehow.
-  duration: float
-
+_MAX_SIGNALS_FOR_FORCE_QUIT = 5
+_Q_SIZE = 2**15
 
 @dataclasses.dataclass
 class ExperimentParams:
-  results_path: os.path
-  experiment_id: str
-  work_fn: Callable[[Any], Any]
+    save_path: os.path
+    experiment_id: str
+    work_fn: Callable[[Any], Any]
 
+    @property
+    def results_file_path(self) -> os.path:
+        results_filename = self.experiment_id + ".results"
+        return os.path.join(self.save_path, results_filename)
 
-@dataclasses.dataclass
-class ExperimentDefinition:
-  all_jobs: Dict[int, Job]
-  job_status: multiprocessing.Array
-
-  def queue_incomplete_jobs(self, job_queue: multiprocessing.Queue):
-    for job_id, status in enumerate(self.job_status):
-      if status == JobStatus.READY.value:
-        job_queue.put(self.all_jobs[job_id])
-
-  @classmethod
-  def from_work(cls,
-      work: Sequence[Any],
-      )->'ExperimentDefinition':
-
-    all_jobs = {}
-    for job_id, w in enumerate(work):
-      job = Job(id=job_id, work=w)
-      all_jobs[job_id] = job
-
-    return cls(all_jobs=all_jobs, job_status=multiprocessing.Array(_STATUS_TYPE, len(all_jobs), lock=True))
-
-  @classmethod
-  def from_checkpoint(cls, definition_path: os.PathLike)->'ExperimentDefinition':
-    with open(definition_path, 'rb') as infile:
-      all_jobs = pickle.load(infile)
-      job_status_local = pickle.load(infile)
-      infile.close()
-    status_shared = multiprocessing.Array(_STATUS_TYPE, job_status_local, lock=True)
-    return cls(all_jobs=all_jobs, job_status=status_shared)
-
-  def shutdown(self, save_file_path: os.PathLike):
-    logging.info('Saving current progress b/c of shutdown.')
-    # This is a recursive lock, so this is fine.
-    self.job_status.get_lock().acquire()
-    for i, status in enumerate(self.job_status):
-      if status == JobStatus.ACTIVE.value:
-        self.job_status[i] = JobStatus.READY.value
-    self.save(save_file_path=save_file_path)
-    self.job_status.get_lock().release()
-
-  def save(self, save_file_path: os.PathLike):
-    logging.debug('Saving current progress.')
-    self.job_status.get_lock().acquire()
-    # Convert any active jobs into ready jobs. Long term, this could create duplicate results.
-    with open(save_file_path, 'wb') as outfile:
-      pickle.dump(self.all_jobs, outfile)
-      local_array = array.array(_STATUS_TYPE, self.job_status.get_obj())
-      pickle.dump(local_array, outfile)
-      outfile.close()
-    self.job_status.get_lock().release()
-
-  def num_active_jobs(self)->int:
-    self.job_status.get_lock().acquire()
-    # NOT A GREAT WAY TO DO THIS
-    num_active_jobs = sum(status==JobStatus.ACTIVE.value for status in self.job_status)
-    self.job_status.get_lock().release()
-    return num_active_jobs
-
-
-  def set_job_starting(self, job_id: int):
-    self.job_status.get_lock().acquire()
-    self.job_status[job_id] = JobStatus.ACTIVE.value
-    self.job_status.get_lock().release()
-    logging.debug('Worker set job %s starting, status are:%s', job_id, [status for status in self.job_status])
-
-  def set_job_complete(self, job_id: int):
-    self.job_status.get_lock().acquire()
-    try:
-      logging.debug('Trying set job %s complete. status:%s', job_id, [status for status in self.job_status])
-      assert(self.job_status[job_id] == JobStatus.ACTIVE.value)
-      self.job_status[job_id] = JobStatus.COMPLETE.value
-    except Exception as e:
-      logging.error('Exception setting job complete: %s %s', e, type(e))
-    self.job_status.get_lock().release()
+    @property
+    def status_file_path(self) -> os.path:
+        status_filename = self.experiment_id + ".status"
+        return os.path.join(self.save_path, status_filename)
 
 
 class Conductor:
-  jobs: multiprocessing.Queue
-  results: multiprocessing.Queue
-  shutdown_signal: multiprocessing.Value
-  workers_done: multiprocessing.Value
-  experiment_params: ExperimentParams
-  num_processes: int
-  definition: Optional[ExperimentDefinition]
-  main_process: bool
+    """Manages load/save experiments and managing their workers and results.
 
-  def __init__(self,
-               experiment_params: ExperimentParams,
-               num_processes: Optional[int] = None):
-    print(f'conductor init logging verbosity={logging.get_verbosity()}')
-    self.main_process = True
-    # This might be a good case to go back to using contexts.
-    self.log_level = logging.get_verbosity()
-    logging.info('info')
-    logging.debug('debug')
-    self.definition = None
-    self.experiment_params = experiment_params
-    self.num_processes = num_processes or multiprocessing.cpu_count()
+  There are smelly variables here like main_process and log_verbosity.
 
-    self.jobs = multiprocessing.Queue()
-    self.results = multiprocessing.Queue()
-    self.shutdown_signal = multiprocessing.Value(ctypes.c_bool, False)
-    self.workers_done = multiprocessing.Value(ctypes.c_bool, False)
-    self.num_sigints = 0
+  Depending on whether multiprocessing is spawn or fork, process details
+  like log level, interrupt handling, etc. may or may not be copied to child
+  processes. These variables help us handle those in a consistent way.
+  """
+
+    jobs: multiprocessing.Queue
+    results: multiprocessing.Queue
+    shutdown_signal: multiprocessing.Value
+    workers_done: multiprocessing.Value
+    experiment_params: ExperimentParams
+    num_processes: int
+    plan: Optional[job.WorkPlan]
+    main_process: bool
+    process_name: str
+
+    def __init__(self,
+                 experiment_params: ExperimentParams,
+                 num_processes: Optional[int] = None):
+        self.main_process = True
+        self.process_name = multiprocessing.current_process().name
+        # This might be a good case to go back to using contexts.
+        self.plan = None
+
+        self.jobs = multiprocessing.Queue()
+        # Ensure overloaded output pipe doesn't hang when we force shutdown.
+        self.jobs.cancel_join_thread()
+
+        self.results = multiprocessing.Queue()
+        self.experiment_params = experiment_params
+        self.num_processes = num_processes or multiprocessing.cpu_count()
+        self.shutdown_signal = multiprocessing.Value(ctypes.c_bool, False)
+        self.workers_done = multiprocessing.Value(ctypes.c_bool, False)
+        self.num_sigints = 0
+        self.log_verbosity = logging.get_verbosity()
+
+    #  PUBLIC ENTRY POINTS
+    def run(self, work: Sequence[Any], try_resume: bool=False):
+      """External entry point for a new experiment."""
+      if try_resume:
+        logging.debug("Trying to resume from checkpoint.")
+        self.plan = job.WorkPlan.from_checkpoint(self.experiment_params.status_file_path)
+
+      if not self.plan:
+        self.plan = job.WorkPlan.from_work(work, self.experiment_params.status_file_path)
+      self._run()
+
+    def resume(self):
+        """External entry point for an existing experiment."""
+        definition_filename = self.experiment_params.experiment_id + ".status"
+        definition_path = os.path.join(self.experiment_params.save_path,
+                                       definition_filename)
+        self.plan = job.WorkPlan.from_checkpoint(definition_path)
+        self._run()
+
+    # PRIVATE STUFF.
+
+    def _setup_subprocess_details(self, process_name_prefix: str):
+        logging.set_verbosity(self.log_verbosity)
+        self.process_name = multiprocessing.current_process().name
+        self.main_process = False
+        base_process_name = multiprocessing.process.current_process().name
+        self.process_name = process_name_prefix + base_process_name
+        logging.info("%s Finished subprocess setup", self.process_name)
 
 
-  def handle_jobs(self):
-    self.main_process = False
-    logging.set_verbosity(self.log_level)
-    process_name = 'Jobs_' + multiprocessing.process.current_process().name
-    logging.info('%s Starting', process_name)
-    while not self.shutdown_signal.value:
-      try:
-        job = self.jobs.get_nowait()
-        # Note that we're working on this job.
-        self.definition.set_job_starting(job.id)
-        result = self.do_work(job)
-        self.results.put(result)
-      except queue.Empty:
-        # If something fails, active jobs could get re-queued. Don't die!
-        print(f'{process_name}: Job Queue empty. Checking for unfinished jobs.')
-        num_active_jobs = self.definition.num_active_jobs()
-        if num_active_jobs > 0:
-          print(
-            f'{process_name}: {num_active_jobs} jobs processing. Sleeping for {_EMPTY_SLEEP_TIME}s')
-          time.sleep(_EMPTY_SLEEP_TIME)
-          continue
+    def _handle_jobs(self):
+        # Process entry point.
+        self._setup_subprocess_details(process_name_prefix="Work")
+        while not self.shutdown_signal.value:
+            try:
+                job = self.jobs.get_nowait()
+                self.plan.set_job_starting(job.id)
+                result = self._do_work(job)
+                self.results.put(result)
+            except queue.Empty:
+              # Due to Multiprocess buffering, queue.Empty can be a false positive.
+              qsize = self.jobs.qsize()
+              if qsize == 0:
+                logging.info("%s: Queue empty.", self.process_name)
+                break
+              else:
+                logging.debug("%s: Queue Empty but false positive b/c qsize:%s", self.process_name, qsize)
+                time.sleep(_EMPTY_SLEEP_TIME)
+                continue
+            except Exception as e:
+                logging.error("%s: Got exception: %s (%s).", self.process_name, e,
+                              type(e))
+                break
+        if self.shutdown_signal.value:
+            logging.info("%s: Shutting down.", self.process_name)
         else:
-          print(f'{process_name}: No active jobs.')
-          break
-      except Exception as e:
-        print(f'{process_name}: Got exception: {e} {type(e)}.')
-        break
-    if self.shutdown_signal.value:
-      print(f'{process_name}: Shutting down.')
-    else:
-      print(f'{process_name}: Completing.')
+            logging.info("%s: Completing.", self.process_name)
 
-  def do_work(self, j: Job):
-    print(f'run_job on job: {j.id}')
-    start_time = time.time()
-    work_results = self.experiment_params.work_fn(j.work)
-    result = Result(job=j,
-                    work_result=work_results,
-                    duration=time.time() - start_time,
-                    worker_name=multiprocessing.current_process().name)
-    print(f'done job {j.id}')
-    return result
+    def _handle_results(self):
+        # Process entry point.
+        self._setup_subprocess_details(process_name_prefix="Results")
+        while not self.shutdown_signal.value:
+            try:
+                result = self.results.get_nowait()
+                logging.info("%s: Processing result of job: %s",
+                             self.process_name, result.job_id)
+                logging.debug("%s Opening results file for appending",
+                              self.process_name)
+                with open(self.experiment_params.results_file_path,
+                          "ab") as outfile:
+                    logging.debug("%s Appending result to file", self.process_name)
+                    pickle.dump(result, outfile)
 
-  def handle_results(self):
-    self.main_process = False
-    logging.set_verbosity(self.log_level)
-    process_name = 'HandleResult_' + multiprocessing.process.current_process().name
-    results_filename = self.experiment_params.experiment_id + '.results'
-    results_path = os.path.join(self.experiment_params.results_path,results_filename)
-    definition_filename = self.experiment_params.experiment_id + '.status'
-    definition_path = os.path.join(self.experiment_params.results_path, definition_filename)
+                # Note that we're done on this job.
+                self.plan.set_job_complete(result.job_id)
+            except queue.Empty:
+                logging.debug(
+                    "%s Result Queue empty. Checking for unfinished jobs.",
+                    self.process_name)
+                # Even if queue.Empty, could be items in results queue b/c of pipes/buffering.
+                results_are_pending = self.results.qsize() > 0
+                job_queue_has_anything = self.jobs.qsize() > 0
+                num_active_jobs = self.plan.num_active_jobs()
+                if results_are_pending or job_queue_has_anything or num_active_jobs > 0:
+                    # Looks like there is still work todo or ongoing.
+                    if self.workers_done.value:
+                        # But, all the workers have finished or died.
+                        logging.error(
+                            "%s Calling for shutdown because work to do but all workers stopped.",
+                            self.process_name,
+                        )
+                        self.shutdown_signal.value = True
+                    else:
+                        # Workers still alive, wait for something to do.
+                        logging.debug(
+                            "%s Jobs todo or pending results. Checkpoint and sleep.",
+                            self.process_name,
+                        )
+                        self.plan.save()
+                        time.sleep(_EMPTY_SLEEP_TIME)
+                        continue
+                else:
+                    logging.info("%s: Job queue empty and active jobs empty.", self.process_name)
+                    break
+            except Exception as exception:
+                logging.error(
+                    "%s: threw exception: %s (%s}. Requesting shutdown.",
+                    self.process_name,
+                    exception,
+                    type(exception),
+                )
+                self.shutdown_signal.value = True
 
-    print(f'{process_name}: Starting.')
-    while not self.shutdown_signal.value:
-      try:
-        result = self.results.get_nowait()
-        print(f'{process_name} : Beep boop. Processing result for Job:{result.job.id}')
-        logging.debug('%s Opening results file for appending', process_name)
-        with open(results_path, 'ab') as outfile:
-          logging.debug('%s Dumping pickled result to outfile', process_name)
-          pickle.dump(result, outfile)
-          outfile.close()
-
-        # Note that we're done on this job.
-        self.definition.set_job_complete(result.job.id)
-      except queue.Empty:
-        logging.info('%s Result Queue empty. Checking for unfinished jobs.', process_name)
-        job_queue_has_anything = self.jobs.qsize() > 0
-        num_active_jobs = self.definition.num_active_jobs()
-        if (job_queue_has_anything or num_active_jobs > 0):
-          # Looks like there is still work todo or ongoing.
-          if self.workers_done.value:
-            # But, all the workers have finished or died.
-            logging.info('%s Calling for shutdown because work to do but all workers stopped.', process_name)
-            self.shutdown_signal.value = True
-          else:
-            # Workers still alive, so just wait for something to do.
-            logging.info('%s Still jobs todo or pending results. Good time to checkpoint and sleep.', process_name)
-            self.definition.save(definition_path)
-            time.sleep(_EMPTY_SLEEP_TIME)
-            continue
+        if self.shutdown_signal:
+            logging.info("%s Shutting down.", self.process_name)
         else:
-          print(f'{process_name}: Job queue empty and active jobs empty.')
-          break
-      except Exception as exception:
-        logging.error('%s: threw exception: %s (%s}. Requesting shutdown.', process_name, exception, type(exception))
-        self.shutdown_signal.value = True
+            logging.info("%s Completing.", self.process_name)
 
-    if self.shutdown_signal:
-      logging.info('%s Shutting down.', process_name)
-    else:
-      logging.info('%s Completing.', process_name)
+    def _do_work(self, j: job.Job):
+        logging.debug("starting do_work on job %s", j.id)
+        start_time = time.time()
+        work_results = self.experiment_params.work_fn(j.work)
+        result = job.Result(
+            job_id=j.id,
+            experiment_id=self.experiment_params.experiment_id,
+            work_result=work_results,
+            duration=time.time() - start_time,
+        )
+        logging.debug("completed do_work on job %s", j.id)
+        return result
 
-  def handle_shutdown(self):
-    definition_filename = self.experiment_params.experiment_id + '.status'
-    definition_path = os.path.join(self.experiment_params.results_path, definition_filename)
-    logging.info('Saving current progress because of shutdown.')
-    self.definition.shutdown(definition_path)
+    def _handle_shutdown(self):
+        """Catching SIGINT or main process ending will call this."""
+        logging.info("Saving current progress because of shutdown.")
+        self.plan.shutdown()
 
-  def handle_signals(self, sig, frame):
-    del sig, frame
-    self.num_sigints += 1
-    if self.num_sigints > 5:
-      print(f'You really want to force quit, ok, ok!')
-      sys.exit(0)
-    if not self.main_process:
-      return
-    logging.warning('Received CTRL-C. Saving progress and exiting.')
-    self.handle_shutdown()
-    sys.exit(0)
+    def _handle_signals(self, sig, frame):
+        """Catches a signal (like SIGINT [Ctrl-C]) and try to shutdown gracefully."""
+        del sig, frame
+        self.num_sigints += 1
+        if self.num_sigints > _MAX_SIGNALS_FOR_FORCE_QUIT:
+            logging.fatal("More than %s SIGINTS. You really want to force quit, ok, ok!", _MAX_SIGNALS_FOR_FORCE_QUIT)
+        # If multiprocessing in FORK mode, this handler will exist on all processes.
+        if not self.main_process:
+            return
+        logging.warning("%s: Received CTRL-C. Trying to shut down gracefully.", self.process_name)
+        self._handle_shutdown()
+        logging.info("%s: Calling sys.exit", self.process_name)
+        sys.exit(0)
 
-  def run(self, work: Sequence[Any]):
-    self.definition = ExperimentDefinition.from_work(work)
-    self._run()
+    def _run(self):
+        self.plan.queue_ready_jobs(self.jobs)
+        # Register to handle CTRL-c.
+        signal.signal(signal.SIGINT, self._handle_signals)
 
-  def resume(self):
-    definition_filename = self.experiment_params.experiment_id + '.status'
-    definition_path = os.path.join(self.experiment_params.results_path,
-                                   definition_filename)
-    self.definition = ExperimentDefinition.from_checkpoint(definition_path)
-    self._run()
+        result_process = multiprocessing.Process(target=self._handle_results,
+                                                 name="Results",
+                                                 daemon=True)
+        result_process.start()
+        worker_processes = []
+        for i in range(self.num_processes):
+            worker = multiprocessing.Process(target=self._handle_jobs,
+                                        name=f"Worker_{i}",
+                                        daemon=True)
+            worker_processes.append(worker)
+            logging.debug("Main process starting worker process: %s", worker)
+            worker.start()
 
-  def _run(self):
-    self.definition.queue_incomplete_jobs(self.jobs)
-    signal.signal(signal.SIGINT, self.handle_signals)
+        while not self.shutdown_signal.value:
+            time.sleep(1)
+            for worker in worker_processes:
+                if not worker.is_alive():
+                  logging.info("Main process determined dead worker: %s", worker)
+                  # Will skip the next process in loop iteration. That's ok.
+                  worker_processes.remove(worker)
+            if not worker_processes:
+                logging.info("No living workers left.")
+                self.workers_done.value = True
+                break
 
-    result_process = multiprocessing.Process(target=self.handle_results,
-                                          name='Results',
-                                          daemon=True)
-    result_process.start()
-    processes = []
-    for i in range(self.num_processes):
-      p = multiprocessing.Process(target=self.handle_jobs,
-                               name=f'Worker_{i}',
-                               daemon=True)
-      processes.append(p)
-      print(f'starting process:{p}')
-      p.start()
+        if self.shutdown_signal.value:
+            logging.info("Shutdown from another process seen in main process.")
+            self._handle_shutdown()
 
-    while not self.shutdown_signal.value:
-      time.sleep(1)
-      for p in processes:
-        if not p.is_alive():
-          print(f'RUN DETERMINED: DEAD PROCESS: {p}')
-          # This will skip the next process, but that's ok.
-          processes.remove(p)
-      if not processes:
-        print(f'No living workers left.')
-        self.workers_done.value = True
-        break
+        for worker in worker_processes:
+            logging.info("Waiting for process: %s to join.", worker)
+            worker.join()
 
-    if self.shutdown_signal.value:
-      print(f'Shutdown Signal received in run.')
-      self.handle_shutdown()
-
-    for p in processes:
-      print(f'joining process:{p}')
-      p.join()
-
-    print(f'All worker processes joined. Waiting on result processor process.')
-    result_process.join()
-    self.handle_shutdown()
-    print('Conductor Complete.')
+        logging.debug("Main process: All worker processes joined.")
+        logging.info("Main process: Waiting on result processor process.")
+        result_process.join()
+        logging.info("Main process: Result processor jointed.")
+        self._handle_shutdown()
+        logging.info("Conductor complete.")

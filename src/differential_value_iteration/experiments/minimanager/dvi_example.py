@@ -30,7 +30,7 @@ from absl import logging
 from absl import flags
 
 FLAGS = flags.FLAGS
-_LOAD_EXPERIMENT_ID = flags.DEFINE_string('experiment_name', '', '')
+_LOAD_EXPERIMENT_ID = flags.DEFINE_string('experiment_id', '', 'String for new name, or to resume existing experiment.')
 _CLEAR_PAST_RESULTS = flags.DEFINE_bool('clear_past_results', False, 'Erase previous results.')
 
 from differential_value_iteration.algorithms import dvi
@@ -39,13 +39,13 @@ from differential_value_iteration.experiments.minimanager import conductor
 
 @dataclasses.dataclass
 class Work:
-  env_constructor: Callable[[Any, ...], Any]
+  env_constructor: Callable[..., Any]
   env_params: Dict[str, Any]
 
-  agent_constructor: Callable[[Any, ...], Any]
+  agent_constructor: Callable[..., Any]
   agent_params: Dict[str, Any]
 
-  run_loop: Callable[[Any, ...], Any]
+  run_loop: Callable[..., Any]
   run_params: Dict[str, Dict[str, Any]]
 
 
@@ -67,12 +67,12 @@ def do_work(work: Work):
 
 
 def generate_work() -> Sequence[Work]:
-  step_sizes = [1., .9, .5,]
-  betas = [1., .1, .5, .2,]
-  # step_sizes = [1., .9, .5, .2, .3, .5]
-  # betas = [1., .1, .5, .2, .8, .1, .1, .1, .1]
-  initial_r_bars = [0.]
-  synchronized = [False]
+  # step_sizes = [1., .9, .5,]
+  # betas = [1., .1, .5, .2,]
+  step_sizes = [1., .9, .5, .2, .3, .5]
+  betas = [1., .1, .5, .2, .8, .1, .1, .1, .1]
+  initial_r_bars = [0., 1.]
+  synchronized = [False, True]
 
   env_constructors = [micro.create_mdp1, micro.create_mdp2]
   agent_constructors = [dvi.Control]
@@ -91,19 +91,16 @@ def generate_work() -> Sequence[Work]:
   return work
 
 def main(argv):
-
   logging.set_verbosity(logging.DEBUG)
-  logging.info('info')
-  logging.debug('debug')
+
 
   # Should use a flag-settable prefix.
   results_dirname = 'results'
   results_path = os.path.join(os.getcwd(), results_dirname)
   logging.debug('Results path will be:%s',results_path)
+
   if os.path.exists(results_path):
-    print('Results path exists.')
     logging.debug('Results path exists already.')
-    print(_CLEAR_PAST_RESULTS.value)
     if _CLEAR_PAST_RESULTS.value:
       logging.debug('Clearing existing results.')
       results_files_path = os.path.join(results_path, '*.results')
@@ -115,7 +112,7 @@ def main(argv):
       for f in status_files:
         os.unlink(f)
   else:
-    print(f'Creating results path')
+    logging.debug("Creating results path")
     os.makedirs(results_path, exist_ok=True)
 
   if _LOAD_EXPERIMENT_ID.value:
@@ -127,20 +124,19 @@ def main(argv):
     now = datetime.now().strftime('%Y_%d_%m_%H%M%S')
     experiment_id = experiment_name + '_' + now
     resume=False
-    print(f'Starting experiment: {experiment_id}')
 
-  experiment_params = conductor.ExperimentParams(results_path=results_path,
+  logging.info("Starting experiment: %s", experiment_id)
+
+  experiment_params = conductor.ExperimentParams(save_path=results_path,
                                                  experiment_id=experiment_id,
                                                  work_fn=do_work)
-  experiment_runner = conductor.Conductor(experiment_params=experiment_params, num_processes=2)
+  experiment_runner = conductor.Conductor(experiment_params=experiment_params)
 
-  if resume:
-    experiment_runner.resume()
-  else:
-    all_work = generate_work()
-    experiment_runner.run(all_work)
+  # Could also just call experiment_runner.resume() if we're sure we can resume.
+  all_work = generate_work()
+  experiment_runner.run(all_work, try_resume=resume)
 
-  print('Control returned to main, program complete.')
+  logging.info("Control returned to main, program complete.")
 
 
 
