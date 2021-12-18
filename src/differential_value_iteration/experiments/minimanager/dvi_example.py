@@ -12,6 +12,7 @@ jobs so that they will not be forgotten next time the program runs.
 No effort is made to continue partial jobs.
 """
 import dataclasses
+import functools
 import itertools
 import time
 from typing import Any, Callable, Dict, Optional, Sequence
@@ -28,71 +29,103 @@ _CLEAR_PAST_RESULTS = flags.DEFINE_bool(
 )
 
 from differential_value_iteration.algorithms import dvi
+from differential_value_iteration.environments import garet
 from differential_value_iteration.environments import micro
-from differential_value_iteration.experiments.minimanager import (conductor,
-                                                                  utils)
+from differential_value_iteration.environments import structure
+from differential_value_iteration.experiments import async_dvi_experiment
+from differential_value_iteration.experiments.minimanager import conductor, utils
 
 
 @dataclasses.dataclass
 class Work:
-    env_constructor: Callable[..., Any]
-    env_params: Dict[str, Any]
+    # env_constructor: Callable[..., Any]
+    # env_params: Dict[str, Any]
+    env_zero_arg_constructor: Callable[[None], structure.MarkovDecisionProcess]
 
-    agent_constructor: Callable[..., Any]
-    agent_params: Dict[str, Any]
+    alg_constructor: Callable[..., Any]
+    alg_params: Dict[str, Any]
 
-    run_loop: Callable[..., Any]
     run_params: Dict[str, Dict[str, Any]]
 
 
-def experiment_fn(agent, num_iterations: int):
-    for i in range(num_iterations):
-        time.sleep(0.025)
-    return {"iters": i}
-
-
 def do_work(work: Work):
-    env = work.env_constructor(**work.env_params)
-    agent_params = work.agent_params
-    agent_params["initial_values"] = np.full(env.num_states, fill_value=0.0)
-    agent_params["mdp"] = env
-    agent = work.agent_constructor(**agent_params)
-    result = work.run_loop(agent=agent, **work.run_params)
+    # env = work.env_constructor(**work.env_params)
+    env = work.env_zero_arg_constructor()
+    alg_params = work.alg_params
+    alg_params["initial_values"] = np.full(env.num_states, fill_value=0.0)
+    alg_params["mdp"] = env
+    alg = work.alg_constructor(**alg_params)
+    result = async_dvi_experiment.run(
+        environment=env,
+        alg=alg,
+        num_iters=work.run_params["num_iterations"],
+        convergence_tolerance=0.001,
+        synchronized=False,
+        eval_all_states=True,
+        measure_iters=[0, 500, 1000, 5000, 10000, 15000],
+    )
+    logging.info("Got results %s", result)
     return result
 
 
-def generate_work() -> Sequence[Work]:
-    # step_sizes = [1., .9, .5,]
-    # betas = [1., .1, .5, .2,]
-    step_sizes = [1.0, 0.9, 0.5, 0.2, 0.3, 0.5]
-    betas = [1.0, 0.1, 0.5, 0.2, 0.8, 0.1, 0.1, 0.1, 0.1]
-    initial_r_bars = [0.0, 1.0]
-    synchronized = [False, True]
+def make_garet_envs():
+    seeds = [1 + x for x in range(100)]
+    num_states = [2, 5, 10, 20, 50]
+    num_actions = [2, 5]
+    branch_factors = [2, 5, 10]
+    garet_constructors = []
+    for s, num_s, num_a, k in itertools.product(
+        seeds, num_states, num_actions, branch_factors
+    ):
+        if k < num_s:
+            garet_constructors.append(
+                functools.partial(
+                    garet.create,
+                    seed=s,
+                    num_states=num_s,
+                    num_actions=num_a,
+                    branching_factor=k,
+                    dtype=np.float64,
+                )
+            )
+    return garet_constructors
 
-    env_constructors = [micro.create_mdp1, micro.create_mdp2]
-    agent_constructors = [dvi.Control]
-    job_id = 0
+
+def generate_work() -> Sequence[Work]:
+    step_sizes = [
+        1.0,
+        0.9,
+        0.5,
+    ]
+    betas = [
+        1.0,
+        0.1,
+        0.5,
+        0.2,
+    ]
+    all_env_zero_arg_constructors = []
+    micro_constructors = [micro.create_mdp1, micro.create_mdp3, micro.create_mdp4]
+    for mc in micro_constructors:
+        all_env_zero_arg_constructors.append(functools.partial(mc, dtype=np.float64))
+
+    all_env_zero_arg_constructors.extend(make_garet_envs())
+
     work = []
-    for a, b, ir, s, e_fn, a_fn in itertools.product(
+    for a, b, e_fn in itertools.product(
         step_sizes,
         betas,
-        initial_r_bars,
-        synchronized,
-        env_constructors,
-        agent_constructors,
+        all_env_zero_arg_constructors,
     ):
         w = Work(
-            env_params={"dtype": np.float64},
-            env_constructor=e_fn,
-            agent_params={
+            env_zero_arg_constructor=e_fn,
+            alg_params={
                 "step_size": a,
                 "beta": b,
-                "initial_r_bar": ir,
-                "synchronized": s,
+                "initial_r_bar": 0.0,
+                "synchronized": False,
             },
-            agent_constructor=a_fn,
-            run_loop=experiment_fn,
-            run_params={"num_iterations": 100},
+            alg_constructor=dvi.Control,
+            run_params={"num_iterations": 20000},
         )
         work.append(w)
 
