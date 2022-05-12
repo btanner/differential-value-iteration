@@ -32,6 +32,6 @@ class Control(Evaluation):
   def greedy_policy(self) -> np.ndarray:
     """Returns the best action in each state."""
 
-  @abc.abstractmethod
   def converged(self, tol: float) -> bool:
     """Checks if converged."""
+    raise NotImplementedError(f'Algorithm does not implement converged.')
