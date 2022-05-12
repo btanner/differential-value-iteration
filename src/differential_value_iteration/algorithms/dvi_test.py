@@ -24,6 +24,7 @@ class DVIEvaluationTest(parameterized.TestCase):
         mrp=environment,
         step_size=.5,
         beta=.5,
+        divide_stepsizes_by_num_states=True,
         initial_r_bar=.5,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -47,6 +48,7 @@ class DVIEvaluationTest(parameterized.TestCase):
         mrp=environment,
         step_size=1.,
         beta=1.,
+        divide_stepsizes_by_num_states=True,
         initial_r_bar=.5,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -70,6 +72,7 @@ class DVIEvaluationTest(parameterized.TestCase):
         mrp=environment,
         step_size=1.,
         beta=1.,
+        divide_stepsizes_by_num_states=True,
         initial_r_bar=.5,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
@@ -102,6 +105,7 @@ class DVIControlTest(parameterized.TestCase):
         mdp=environment,
         step_size=1.,
         beta=1.,
+        divide_stepsizes_by_num_states=True,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -129,6 +133,7 @@ class DVIControlTest(parameterized.TestCase):
         mdp=environment,
         step_size=.5,
         beta=.5,
+        divide_stepsizes_by_num_states=True,
         initial_r_bar=.0,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
