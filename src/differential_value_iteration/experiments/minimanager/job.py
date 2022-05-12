@@ -107,8 +107,12 @@ class WorkPlan:
             return None
         try:
             with open(status_file_path, "rb") as infile:
+                logging.info("Trying to load all_jobs from %s", status_file_path)
                 all_jobs = pickle.load(infile)
+                logging.info("Loaded")
+                logging.info("Trying to load job_status_local from %s", status_file_path)
                 job_status_local = pickle.load(infile)
+                logging.info("Loaded")
                 infile.close()
             for job_id, job in all_jobs.items():
                 this_job_status = JobStatus(job_status_local[job_id])

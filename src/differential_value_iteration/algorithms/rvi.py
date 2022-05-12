@@ -99,12 +99,20 @@ class Control(algorithm.Control):
       return self.update_sync()
     return self.update_async()
 
-  def update_sync(self) -> np.ndarray:
+  def converged(self, tol: float) -> bool:
+    sync_changes = self.calc_sync_changes()
+    return np.mean(np.abs(sync_changes)) < tol
+
+  def calc_sync_changes(self) -> np.ndarray:
     temp_s_by_a = self.mdp.rewards + np.dot(self.mdp.transitions,
                                             self.current_values -
                                             self.current_values[
                                               self.reference_index]) - self.current_values
-    changes = np.max(temp_s_by_a, axis=0)
+    return np.max(temp_s_by_a, axis=0)
+
+
+  def update_sync(self) -> np.ndarray:
+    changes = self.calc_sync_changes()
     self.current_values += self.step_size * changes
     return changes
 

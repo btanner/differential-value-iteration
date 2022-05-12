@@ -23,5 +23,5 @@ setuptools.setup(
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.6",
-    install_requires=["absl-py", "jaxlib", "matplotlib", "numpy", "quantecon"],
+    install_requires=["absl-py", "jaxlib", "matplotlib", "numpy", "quantecon", "pandas==1.1.5"],
 )

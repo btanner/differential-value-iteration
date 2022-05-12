@@ -22,6 +22,7 @@ import queue
 import signal
 import sys
 import time
+import traceback
 from typing import Any, Callable, Optional, Sequence
 
 from absl import logging
@@ -99,6 +100,8 @@ class Conductor:
             )
 
         if not self.plan:
+            logging.fatal("DID NOT RESUME")
+
             self.plan = job.WorkPlan.from_work(
                 work, self.experiment_params.status_file_path
             )
@@ -148,10 +151,11 @@ class Conductor:
                     continue
             except Exception as exception:
                 logging.error(
-                    "%s: Got exception: %s (%s).",
+                    "%s: Got exception: %s (%s): %s",
                     self.process_name,
                     exception,
                     type(exception),
+                    traceback.format_exc(),
                 )
                 break
         if self.shutdown_signal.value:
@@ -278,8 +282,11 @@ class Conductor:
             logging.debug("Main process starting worker process: %s", worker)
             worker.start()
 
+        # Main Process will spend most of lifecycle in this loop.
+        main_loop_counter = 0
         while not self.shutdown_signal.value:
             time.sleep(1)
+            main_loop_counter += 1
             for worker in worker_processes:
                 if not worker.is_alive():
                     logging.info("Main process determined dead worker: %s", worker)
@@ -289,6 +296,12 @@ class Conductor:
                 logging.info("No living workers left.")
                 self.workers_done.value = True
                 break
+            if main_loop_counter % 100 == 0:
+                logging.info(
+                    "Main Process: Loop%d\tApprox %d jobs to do",
+                    main_loop_counter,
+                    self.jobs.qsize(),
+                )
 
         if self.shutdown_signal.value:
             logging.info("Shutdown from another process seen in main process.")

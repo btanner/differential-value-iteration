@@ -21,8 +21,7 @@ import numpy as np
 from absl import app, flags, logging
 
 _NUM_ITERATIONS = 20000
-# _MEASURE_ITERS = tuple(np.arange(0, _NUM_ITERATIONS, step=100, dtype=np.int))
-_MEASURE_ITERS = (0, 100, 500, 2000, 5000, 10000)
+_MEASURE_ITERS = tuple(np.arange(0, _NUM_ITERATIONS, step=100, dtype=np.int))
 
 FLAGS = flags.FLAGS
 _LOAD_EXPERIMENT_NAME = flags.DEFINE_string(
@@ -77,51 +76,23 @@ def do_work(work: Work):
     return result
 
 
-def make_garet_envs():
-    seeds = [1 + x for x in range(100)]
-    num_states = [2, 5, 10, 20, 50]
-    num_actions = [2, 5]
-    branch_factors = [2, 5, 10]
-    # seeds = [1 + x for x in range(1)]
-    # num_states = [5]
-    # num_actions = [2]
-    # branch_factors = [2]
-    garet_constructors = []
-    for s, num_s, num_a, k in itertools.product(
-        seeds, num_states, num_actions, branch_factors
-    ):
-        if k < num_s:
-            garet_constructors.append(
-                functools.partial(
-                    garet.create,
-                    seed=s,
-                    num_states=num_s,
-                    num_actions=num_a,
-                    branching_factor=k,
-                    dtype=np.float64,
-                )
-            )
-    return garet_constructors
-
-
 def make_dvi_work(env_constructors, env_ids):
     dvi_work = []
     async_manager_fns = [
       dvi.RoundRobinASync,
       functools.partial(dvi.RandomAsync, seed=42),
-      functools.partial(dvi.ConvergeRoundRobinASync, tol=.00001),
-      functools.partial(dvi.ConvergeRandomASync, tol=.00001, seed=42),
+      functools.partial(dvi.ConvergeRoundRobinASync, tol=.001),
+      functools.partial(dvi.ConvergeRandomASync, tol=.001, seed=42),
       ]
-    for a, b, divide_num_states, async_manager_fn, e_fn in itertools.product(
+    for a, b, e_fn, async_manager_fn in itertools.product(
         [
             1.0,
             0.9,
             0.5,
         ],
         [1.0, 0.1, 0.5, 0.2],
-        [True, False],
-        async_manager_fns,
         env_constructors,
+        async_manager_fns
     ):
         env_id = env_ids[e_fn]
         w = Work(
@@ -132,7 +103,7 @@ def make_dvi_work(env_constructors, env_ids):
                 "initial_r_bar": 0.0,
                 "synchronized": False,
                 "async_manager_fn": async_manager_fn,
-                "divide_by_num_states": divide_num_states,
+                "divide_by_num_states": False,
             },
             alg_constructor=dvi.Control,
             run_params={"num_iterations": _NUM_ITERATIONS},
@@ -163,11 +134,10 @@ def make_rvi_work(env_constructors, env_ids):
 
 def generate_work() -> Sequence[Work]:
     all_env_zero_arg_constructors = []
-    micro_constructors = [micro.create_mdp1, micro.create_mdp3, micro.create_mdp4]
+    micro_constructors = [micro.create_mdp1]
     for mc in micro_constructors:
         all_env_zero_arg_constructors.append(functools.partial(mc, dtype=np.float64))
 
-    all_env_zero_arg_constructors.extend(make_garet_envs())
     # Map each env constructor to an id so we can compare algorithms to baselines later.
     env_ids = {}
     for e_fn in all_env_zero_arg_constructors:
@@ -184,11 +154,6 @@ def generate_work() -> Sequence[Work]:
 
 
 def main(argv):
-    # DIRTY FOR ANALYSIS
-    # all_work = generate_work()
-    # print(all_work[0])
-    # return
-
     logging.set_verbosity(logging.INFO)
 
     # Should use a flag-settable prefix.
@@ -198,7 +163,7 @@ def main(argv):
         utils.clear_old_saves(save_path=save_path)
 
     experiment_name = utils.make_experiment_name(
-        new_experiment_name_prefix="async_dvi_sweep",
+        new_experiment_name_prefix="async_dvi_mdp1",
         command_line_value=_LOAD_EXPERIMENT_NAME.value,
     )
 

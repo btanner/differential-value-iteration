@@ -85,7 +85,7 @@ def run(
             converged = False
             break
 
-        if change_summary <= convergence_tolerance and i > 1:
+        if alg.converged(convergence_tolerance) and i > 1:
             converged = True
             break
     converged_string = "YES\t" if converged else "NO\t"
@@ -93,7 +93,8 @@ def run(
     mean_returns, std_returns = estimate_policy_average_reward(
         alg.greedy_policy(), environment, eval_all_states
     )
-    policy_measurements[i] = (mean_returns, std_returns, alg.greedy_policy())
+    this_policy = str(alg.greedy_policy())
+    policy_measurements[i] = (mean_returns, std_returns, this_policy)
 
     if diverged:
         converged_string = "DIVERGED"
@@ -106,11 +107,12 @@ def run(
         )
     return {
         "average_time_ms": 1000.0 * total_time / i,
+        "last_iteration": i,
         "converged": converged,
         "diverged": diverged,
         "late_policy_switches": policy_switches,
         "all_late_policies": all_late_policies,
-        "last_policy": last_policy,
+        "last_policy": this_policy,
         "policy_measurements": policy_measurements,
         "value_changes": logged_value_changes,
     }
