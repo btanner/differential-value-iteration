@@ -34,7 +34,7 @@ class PolicyTest(parameterized.TestCase):
         mdp=environment,
         step_size=.1,
         beta=.1,
-        divide_stepsizes_by_num_states=True,
+        divide_beta_by_num_states=True,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -84,7 +84,7 @@ class PolicyTest(parameterized.TestCase):
         mdp=environment,
         step_size=.1,
         beta=.1,
-        divide_stepsizes_by_num_states=True,
+        divide_beta_by_num_states=True,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)

@@ -11,9 +11,9 @@ from differential_value_iteration.algorithms import rvi
 from differential_value_iteration.environments import micro
 
 _MAKE_DVI = functools.partial(dvi.Evaluation,
-                              step_size=1.,
+                              step_size=1./2,
                               beta=1.,
-                              divide_stepsizes_by_num_states=True,
+                              divide_beta_by_num_states=True,
                               initial_r_bar=.0,
                               synchronized=True,
                               )

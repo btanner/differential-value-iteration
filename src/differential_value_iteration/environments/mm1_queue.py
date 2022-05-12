@@ -167,11 +167,19 @@ MM1_QUEUE_1 = functools.partial(create,
                                 cost_fn=functools.partial(linear_cost_fn,
                                                           cost_constant=1.),
                                 max_stored_jobs=4)
-#
-# MM1_QUEUE_1 = functools.partial(create,
-#                                 arrival_rate=5.,
-#                                 service_rate=5.,
-#                                 admit_reward=12.,
-#                                 cost_fn=functools.partial(linear_cost_fn,
-#                                                           cost_constant=1.),
-#                                 max_stored_jobs=10)
+
+MM1_QUEUE_2 = functools.partial(create,
+                                arrival_rate=1.5,
+                                service_rate=1.,
+                                admit_reward=4.,
+                                cost_fn=functools.partial(linear_cost_fn,
+                                                          cost_constant=1.),
+                                max_stored_jobs=8)
+
+MM1_QUEUE_3 = functools.partial(create,
+                                arrival_rate=1.,
+                                service_rate=1.5,
+                                admit_reward=4.,
+                                cost_fn=functools.partial(linear_cost_fn,
+                                                          cost_constant=1.),
+                                max_stored_jobs=8)

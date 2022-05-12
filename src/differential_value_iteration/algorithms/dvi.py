@@ -20,7 +20,7 @@ class Evaluation(algorithm.Evaluation):
       initial_r_bar: float,
       step_size: float,
       beta: float,
-      divide_stepsizes_by_num_states: bool,
+      divide_beta_by_num_states: bool,
       synchronized: bool,
       async_manager_fn: Optional[async_strategies.AsyncManager] = None,
   ):
@@ -29,15 +29,14 @@ class Evaluation(algorithm.Evaluation):
         mrp: The problem.
         initial_values: Initial state values.
         initial_r_bar: Initial r_bar.
-        step_size: Step size. Will be scaled by number of states.
-        beta: Beta learning rate parameter. Will be scaled by number of states.
-        divide_stepsizes_by_num_states: If true, divide stepsizes by num states.
+        step_size: Step size.
+        beta: Beta learning rate parameter.
+        divide_beta_by_num_states: If true, divide beta by number of states.
         synchronized: If True, execute synchronous updates of all states.
             Otherwise execute asynch updates according to async_strategy.
         async_manager_fn: Constructor for async manager.
     """
-    if divide_stepsizes_by_num_states:
-      step_size /= mrp.num_states
+    if divide_beta_by_num_states:
       beta /= mrp.num_states
     self.mrp = mrp
     # Ensure internal value types match environment precision.
@@ -116,7 +115,7 @@ class Control(algorithm.Control):
       initial_r_bar: float,
       step_size: float,
       beta: float,
-      divide_stepsizes_by_num_states: bool,
+      divide_beta_by_num_states: bool,
       synchronized: bool,
       async_manager_fn: Optional[async_strategies.AsyncManager] = None,
   ):
@@ -127,15 +126,14 @@ class Control(algorithm.Control):
         initial_r_bar: Initial r_bar.
         step_size: Step size.
         beta: Beta learning rate parameter.
-        divide_stepsizes_by_num_states: If true, divide stepsizes by num states.
+        divide_beta_by_num_states: If true, divide beta by number of states.
         synchronized: If True, execute synchronous updates of all states.
             Otherwise execute asynch updates according to async_strategy.
         async_manager_fn: Constructor for async manager.
     """
     self.mdp = mdp
 
-    if divide_stepsizes_by_num_states:
-      step_size /= mdp.num_states
+    if divide_beta_by_num_states:
       beta /= mdp.num_states
 
     # Ensure internal value types match environment precision.
