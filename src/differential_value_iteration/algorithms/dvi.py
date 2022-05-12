@@ -1,61 +1,11 @@
 """Evaluation and Control implementations of Differential Value Iteration."""
 
-import enum
 import numpy as np
-import random
 from absl import logging
 from differential_value_iteration.algorithms import algorithm
+from differential_value_iteration.algorithms import async_strategies
 from differential_value_iteration.environments import structure
-
-
-class AsyncManager:
-    def __init__(self, num_states: int, start_state: int):
-        self.num_states = num_states
-        self.start_state = start_state
-        self.next_state = start_state
-
-    def update(self, change: float) -> None:
-        pass
-
-    def reset(self) -> None:
-        self.next_state = self.start_state
-
-
-class RandomAsync(AsyncManager):
-    def __init__(self, num_states: int, start_state: int, seed: int = 42):
-        super().__init__(num_states, start_state)
-        self.rand_gen = random.Random(seed)
-
-    def update(self, change: float) -> None:
-        del change
-        self.next_state = self.rand_gen.randint(0, self.num_states - 1)
-
-
-class RoundRobinASync(AsyncManager):
-    def update(self, change: float):
-        del change
-        self.next_state = (self.next_state + 1) % self.num_states
-
-
-class ConvergeRoundRobinASync(AsyncManager):
-    def __init__(self, num_states: int, start_state: int, tol: float):
-        super().__init__(num_states, start_state)
-        self.tol = tol
-
-    def update(self, change: float):
-        if abs(change) < self.tol:
-            self.next_state = (self.next_state + 1) % self.num_states
-
-
-class ConvergeRandomASync(AsyncManager):
-    def __init__(self, num_states: int, start_state: int, seed: int, tol: float):
-        super().__init__(num_states, start_state)
-        self.rand_gen = random.Random(seed)
-        self.tol = tol
-
-    def update(self, change: float):
-        if abs(change) < self.tol:
-            self.next_state = self.rand_gen.randint(0, self.num_states - 1)
+from typing import Optional
 
 
 class Evaluation(algorithm.Evaluation):
@@ -147,10 +97,10 @@ class Control(algorithm.Control):
         beta: float,
         synchronized: bool,
         divide_by_num_states: bool = True,
-        async_manager_fn=None,
+        async_manager_fn: Optional[async_strategies.AsyncManager] = None,
     ):
         if not async_manager_fn:
-            async_manager_fn = RoundRobinASync
+            async_manager_fn = async_strategies.RoundRobinASync
         self.async_manager = async_manager_fn(num_states=mdp.num_states, start_state=0)
         self.mdp = mdp
 
