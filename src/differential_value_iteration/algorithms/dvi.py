@@ -120,7 +120,7 @@ class Control(algorithm.Control):
       synchronized: bool,
       async_manager_fn: Optional[async_strategies.AsyncManager] = None,
   ):
-    """Creates the evaluation algorithm.
+    """Creates the control algorithm.
     Args:
         mdp: The problem.
         initial_values: Initial state values.
@@ -132,10 +132,6 @@ class Control(algorithm.Control):
             Otherwise execute asynch updates according to async_strategy.
         async_manager_fn: Constructor for async manager.
     """
-    if not async_manager_fn:
-      async_manager_fn = async_strategies.RoundRobinASync
-    self.async_manager = async_manager_fn(num_states=mdp.num_states,
-                                          start_state=0)
     self.mdp = mdp
 
     if divide_stepsizes_by_num_states:
@@ -149,6 +145,10 @@ class Control(algorithm.Control):
     self.beta = mdp.rewards.dtype.type(beta)
 
     self.synchronized = synchronized
+    if not async_manager_fn:
+      async_manager_fn = async_strategies.RoundRobinASync
+    self.async_manager = async_manager_fn(num_states=mdp.num_states,
+                                          start_state=0)
     self.reset()
 
   def reset(self):

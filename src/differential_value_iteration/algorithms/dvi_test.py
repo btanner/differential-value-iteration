@@ -1,5 +1,4 @@
 """Tests for basic functioning of DVI algorithms."""
-import functools
 import itertools
 from typing import Callable
 
