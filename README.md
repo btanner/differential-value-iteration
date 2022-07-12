@@ -13,21 +13,22 @@ pip install --upgrade "jax[cpu]"
 - Clone the github repository to a local directory.
 
 ## Developer
-- From the root of the repo, `python3 setup.py develop --user
+- From the root of the repo, `python setup.py develop --user`
 
 This will install into your user folder.
 
-To check if it is working, you should be able to execute main.py with Python 3.8 or higher.
+To check if it is working, you should be able to execute an experiment.
 
-Eg. `python main.py` or `python3 main.py`
+Eg. `python main.py src/differential_value_iteration/experiments/dvi_async_vs_sync.py'
 
-You can uninstall, `python3 setup.py develop --uninstall`
+You can uninstall:`python setup.py develop --uninstall`
 
 To run the tests, from the root of the repo (after running setup.py):
-	`python3 src/differential_value_iteration/import_test.py`
+
+`python -m unittest discover src/differential_value_iteration -p '*_test.py'`
 
 ## User
-- From the root of the repo, `python3 setup.py install`
+- From the root of the repo, `python setup.py install`
 
 
 

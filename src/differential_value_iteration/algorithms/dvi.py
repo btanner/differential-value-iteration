@@ -78,6 +78,7 @@ class Evaluation(algorithm.Evaluation):
     return self.update_async()
 
   def update_sync(self) -> np.ndarray:
+    """Updates all state values and r_bar."""
     changes = (
         self.mrp.rewards
         - self.r_bar
@@ -89,6 +90,7 @@ class Evaluation(algorithm.Evaluation):
     return changes
 
   def update_async(self) -> np.ndarray:
+    """Updates one state value and r_bar."""
     index = self.async_manager.next_state
     change = (
         self.mrp.rewards[index]
@@ -147,6 +149,8 @@ class Control(algorithm.Control):
       async_manager_fn = async_strategies.RoundRobinASync
     self.async_manager = async_manager_fn(num_states=mdp.num_states,
                                           start_state=0)
+    self.current_values = self.initial_values.copy()
+    self.r_bar = self.initial_r_bar
     self.reset()
 
   def reset(self):
@@ -160,6 +164,7 @@ class Control(algorithm.Control):
     return self.update_async()
 
   def calc_sync_changes(self) -> np.ndarray:
+    """Calculates changes that a sync update would do."""
     temp_s_by_a = (
         self.mdp.rewards
         - self.r_bar
@@ -169,6 +174,7 @@ class Control(algorithm.Control):
     return np.max(temp_s_by_a, axis=0)
 
   def update_sync(self) -> np.ndarray:
+    """Updates all state values and r_bar."""
     changes = self.calc_sync_changes()
     self.current_values += self.step_size * changes
     self.r_bar += self.beta * np.sum(changes)
@@ -176,6 +182,7 @@ class Control(algorithm.Control):
     return changes
 
   def update_async(self) -> np.ndarray:
+    """Updates one state value and r_bar."""
     index = self.async_manager.next_state
     temp_a = (
         self.mdp.rewards[:, index]
@@ -190,8 +197,10 @@ class Control(algorithm.Control):
     return change
 
   def converged(self, tol: float) -> bool:
-    sync_changes = self.calc_sync_changes()
-    return np.mean(np.abs(sync_changes)) < tol
+    return np.mean(np.abs(self.calc_sync_changes())) < tol
+
+  def state_values(self) -> np.ndarray:
+    return self.current_values
 
   def diverged(self) -> bool:
     if not np.isfinite(self.current_values).all():

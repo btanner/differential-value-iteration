@@ -1,3 +1,4 @@
+"""Definitions of Micro MRP and MDPs."""
 import numpy as np
 from differential_value_iteration.environments import structure
 
@@ -54,7 +55,7 @@ def create_mrp3(dtype: np.dtype) -> structure.MarkovRewardProcess:
           [.2, .8],
           [.2, .8]], dtype=dtype),
       rewards=np.array([1, 1], dtype=dtype),
-      name=f'mrp3 ({dtype.__name__})')
+      name=f'mrp3 ({dtype})')
 
 
 def create_mdp1(dtype: np.dtype) -> structure.MarkovDecisionProcess:
@@ -74,7 +75,7 @@ def create_mdp1(dtype: np.dtype) -> structure.MarkovDecisionProcess:
           [1, 1],  # first action
           [0, 0]  # second action
       ], dtype=dtype),
-      name=f'mdp1 ({dtype.__name__})',
+      name=f'mdp1 ({dtype})',
   )
 
 
@@ -115,7 +116,7 @@ def create_mdp3(dtype: np.dtype) -> structure.MarkovDecisionProcess:
           [1., 2., 3.],  # first action
           [0., 0., 0.]  # second action
       ], dtype=dtype),
-      name=f'mdp3 ({dtype.__name__})',
+      name=f'mdp3 ({dtype})',
   )
 
 def create_mdp4(dtype: np.dtype) -> structure.MarkovDecisionProcess:
@@ -149,11 +150,5 @@ def create_mdp4(dtype: np.dtype) -> structure.MarkovDecisionProcess:
             [ 0.,  0., -1., -1., -2., -2.,  -3.],  # first action (continue)
             [-1.,  9., -2.,  8., -3.,  7.,  -4.]  # second action (admit)
         ], dtype=dtype),
-        name=f'mdp4 ({dtype.__name__})',
+        name=f'mdp4 ({dtype})',
     )
-
-
-
-# Remove these soon.
-mdp1 = create_mdp1(np.float32)
-mdp2 = create_mdp2(np.float32)

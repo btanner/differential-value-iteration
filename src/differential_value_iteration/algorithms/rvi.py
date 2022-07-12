@@ -124,7 +124,7 @@ class Control(algorithm.Control):
 
   def diverged(self) -> bool:
     if not np.isfinite(self.current_values).all():
-      logging.warn('Current values not finite in RVI.')
+      logging.warning('Current values not finite in RVI.')
       return True
     return False
 
@@ -170,6 +170,9 @@ class Control(algorithm.Control):
                                             self.current_values[
                                               self.reference_index])
     return np.argmax(temp_s_by_a, axis=0)
+
+  def state_values(self) -> np.ndarray:
+    return self.current_values
 
   def get_estimates(self):
     return {'v': self.current_values, 'r_bar': self.current_values[self.reference_index]}

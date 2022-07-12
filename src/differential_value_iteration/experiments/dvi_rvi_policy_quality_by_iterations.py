@@ -1,4 +1,16 @@
-"""Runs control algorithms a few times to generate timing in a few problems."""
+"""Runs DVI and RVI algorithms and prints various diagnostics.
+
+This experiment is like a fleshed out version of:
+dvi_rvi_control_convergence_test.py
+
+This is messy and is meant to be hackable to try things out.
+
+In addition to checking for convergence, this experiment:
+- Measures how many times the policy changes after _BURNIN_PERIOD iterations.
+- Periodically empirically samples rewards gained by the greedy policy.
+- Reports wall clock time of each algorithm.
+- Reports the distance from final values from some intermediate iterations.
+"""
 
 import functools
 import time
@@ -20,6 +32,8 @@ from differential_value_iteration.environments import structure
 FLAGS = flags.FLAGS
 _NUM_ITERS = flags.DEFINE_integer('num_iters', 128,
                                   'Number of iterations per algorithm')
+_CONVERGENCE_TOL = flags.DEFINE_float('convergence_tol', .0001,
+                                      'Maximum mean absolute change to be considered converged.')
 
 # Environment flags
 _MDP1 = flags.DEFINE_bool('mdp1', True, 'Include MDP1 in benchmark')
@@ -33,10 +47,12 @@ _MM1_1 = flags.DEFINE_bool('MM1_1', True, 'Include MM1 Queue 1 in benchmark')
 _MM1_2 = flags.DEFINE_bool('MM1_2', True, 'Include MM1 Queue 2 in benchmark')
 _MM1_3 = flags.DEFINE_bool('MM1_3', True, 'Include MM1 Queue 3 in benchmark')
 
+_BURNIN_PERIOD = 10_000
+
 
 def run(
-    environments: Sequence[structure.MarkovRewardProcess],
-    algorithm_constructors: Sequence[Callable[..., algorithm.Evaluation]],
+    environments: Sequence[structure.MarkovDecisionProcess],
+    algorithm_constructors: Sequence[Callable[..., algorithm.Control]],
     num_iters: int,
     measure_iters: Sequence[int]):
   """Runs a list of algorithms on a list of environments and prints outcomes.
@@ -47,39 +63,45 @@ def run(
         with hypers preset using functools.partial.
       num_iters: Total number of iterations for benchmark.
       measure_iters: Which iterations to evaluate policy on. Final policy is
-        always evaluate.
+        always evaluated.
       """
   for environment in environments:
     print(f'\nEnvironment: {environment.name}\n----------------------')
     initial_values = np.zeros(environment.num_states)
+    summary_data = {}
     for algorithm_constructor in algorithm_constructors:
       total_time = 0.
+      state_values_over_time = []
       converged = False
       diverged = False
       alg = algorithm_constructor(mdp=environment,
                                   initial_values=initial_values,
                                   synchronized=True)
-      module_name = alg.__class__.__module__.split('.')[-1]
-      alg_name = module_name + '::' + alg.__class__.__name__
-      print(f'\n{alg_name}')
+      summary_data[alg.pretty_name] = {}
+      print(f'\n{alg.pretty_name}')
       changes = [0.]  # Dummy starting value.
       last_policy = None
       policy_switches = 0
       all_late_policies = set()
+
+      state_values_over_time.append(np.array(alg.state_values()))
       for i in range(num_iters):
         if i in measure_iters:
           measure_policy(i, alg, environment, eval_all_states=False,
-                         last_change=np.mean(np.abs(changes)), final=False)
+                         last_change=float(np.mean(np.abs(changes))),
+                         final=False)
         start_time = time.time()
         changes = alg.update()
+        state_values_over_time.append(np.array(alg.state_values()))
+
         end_time = time.time()
         total_time += end_time - start_time
         # Mean instead of sum so tolerance scales with num_states.
-        change_summary = np.mean(np.abs(changes))
-        if i == 10000:
+        change_summary = float(np.mean(np.abs(changes)))
+        if i == _BURNIN_PERIOD:
           last_policy = str(alg.greedy_policy())
           all_late_policies.add(last_policy)
-        if i > 10000:
+        elif i > _BURNIN_PERIOD:
           this_policy = str(alg.greedy_policy())
           if this_policy != last_policy:
             policy_switches += 1
@@ -90,14 +112,13 @@ def run(
           diverged = True
           converged = False
           break
-        convergence_tolerance = .01
-        if change_summary <= convergence_tolerance and i > 1:
+        if change_summary <= _CONVERGENCE_TOL.value and i > 1:
           converged = True
           break
       converged_string = 'YES\t' if converged else 'NO\t'
 
-      measure_policy(i, alg, environment, eval_all_states,
-                     last_change=np.mean(np.abs(changes)), final=True)
+      measure_policy(i, alg, environment, eval_all_states=False,
+                     last_change=float(np.mean(np.abs(changes))), final=True)
 
       if diverged:
         converged_string = 'DIVERGED'
@@ -105,7 +126,15 @@ def run(
           f'Summary: Average Time:{1000. * total_time / i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f}')
       if not converged:
         print(
-          f'After iter 10000, policy switched:{policy_switches} times and saw these policies:{all_late_policies}')
+            f'After iter 10000, policy switched:{policy_switches} times and saw these policies:{all_late_policies}')
+      final_state_values = np.array(alg.state_values())
+      print(f'Final Values:{final_state_values} ')
+      state_values_over_time = np.asarray(state_values_over_time)
+      summary_data[alg.pretty_name]['max_diff_from_final_per_iteration'] = np.max(
+        np.abs(
+          (state_values_over_time - final_state_values) / final_state_values),
+        axis=-1)
+    print(summary_data)
 
 
 def measure_policy(iteration: int, alg: algorithm.Control,
@@ -191,7 +220,7 @@ def main(argv):
   algorithm_constructors.append(rvi_algorithm)
 
   environments = []
-  problem_dtype = np.float64
+  problem_dtype = np.dtype(np.float64)
   if _MDP1.value:
     environments.append(micro.create_mdp1(dtype=problem_dtype))
   if _MDP4.value:
@@ -211,9 +240,13 @@ def main(argv):
   if _MM1_3.value:
     environments.append(mm1_queue.MM1_QUEUE_3(dtype=problem_dtype))
 
-  measure_iters = [i for i in range(_NUM_ITERS.value)]
   if not environments:
     raise ValueError('At least one environment required.')
+
+  # What iterations to empirically sample rewards.
+  # Currently measures on each iteration, but you could do something like:
+  # measure_iters = [0, 1, 5, 10, 100, 1000, 5000, 10000]
+  measure_iters = [i for i in range(_NUM_ITERS.value)]
 
   run(environments=environments,
       algorithm_constructors=algorithm_constructors,

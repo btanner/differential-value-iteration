@@ -154,7 +154,7 @@ def create(arrival_rate: float, service_rate: float, admit_reward: float,
           transitions[action, s, no_new_job_next] = complete_prob
           # Same as passing b/c could not admit job.
           rewards[action, s] = -cost_fn(jobs_waiting=num_queued) * joint_rate
-  name = f'MM1 {arrival_rate}/{service_rate}/{admit_reward}/{max_stored_jobs}/{dtype}/{cost_fn}'
+  name = f'MM1 {arrival_rate}:{service_rate}:{admit_reward}:{max_stored_jobs}:{dtype}:{cost_fn.func.__name__}'
   return structure.MarkovDecisionProcess(transitions=transitions,
                                          rewards=rewards,
                                          name=name)
