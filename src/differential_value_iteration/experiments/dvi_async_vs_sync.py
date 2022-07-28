@@ -104,16 +104,7 @@ def main(argv):
         async_results[name].append(this_run_result)
     max_async_full_iterations = max_async_iterations // environment.num_states
 
-    # # async_manager_fn = functools.partial(async_strategies.ConvergeRoundRobinASync, tol=_CONVERGENCE_TOL.value)
-    # # async_manager_fn = async_strategies.RandomAsyncWithoutReplacement
-    # async_manager_fn = async_strategies.RoundRobinASync
-    # async_dvi_results = simple_experiment_runner.run_algorithm(
-    #   dvi_async_algorithm,
-    #   max_iters=_MAX_ITERS.value * environment.num_states,
-    #   converged_tol=_CONVERGENCE_TOL.value)
     i = 0
-    # print(async_dvi_results.state_values)
-    # print(dvi_results.state_values)
     iterations_to_print = max(len(dvi_results.policies), max_async_full_iterations)
 
     value_distances = {'Sync DVI': []}
@@ -125,9 +116,6 @@ def main(argv):
     # Initial distance from 0.
     sync_val_distance = np.mean(np.abs(dvi_results.state_values[-1]))
     sync_policy_distance = np.mean(np.abs(dvi_results.policies[-1]))
-    # sync_policy_distance = {name:np.mean(np.abs(dvi_results.policies[-1])) for name in async_results.keys()}
-    # iterations_to_print = max(len(dvi_results.policies), len(
-    #   async_dvi_results.policies) // environment.num_states)
     for iteration in range(iterations_to_print):
       print('Outer Iteration:', iteration)
       print('-------------------')
