@@ -1,4 +1,26 @@
-"""Runs control algorithms a few times to generate timing in a few problems."""
+"""Runs control algorithms on sample problems to test intuitions.
+
+This benchmark is not part of our formal empirical results. It is a nice example
+of how to run each of the control algorithms, including how you can empirically
+evaluate policies by extracting and simulating Markov Chains.
+
+By default, this will run all the control algorithms on several sample
+problems and report convergence, timing, final policy, and sample return from
+that policy. Most of this can be controlled with flags.
+
+Roughly speaking, most of the algorithms converge to the same policy on the test
+problems. The exceptions are:
+
+DVI and RVI do not converge on MDP2: 2 states that are not communicating.
+They do find the optimal policy.
+
+MDVI Control 1 seems harder to configure, and experimentation is required to
+choose an appropriate max number of iterations, step size, beta when small
+threshold values are used.
+
+Ultimately, it runs here with a very large (ie: broken) threshold, and converges
+quickly with step_size and beta = 1.
+"""
 
 import functools
 import time
@@ -20,7 +42,7 @@ from differential_value_iteration.environments import mm1_queue
 from differential_value_iteration.environments import structure
 
 FLAGS = flags.FLAGS
-_NUM_ITERS = flags.DEFINE_integer('num_iters', 1000,
+_NUM_ITERS = flags.DEFINE_integer('num_iters', 100000,
                                   'Number of iterations per algorithm')
 _SYNCHRONIZED = flags.DEFINE_bool('synchronized', True,
                                   'Run algorithms in synchronized mode')
@@ -210,23 +232,34 @@ def main(argv):
     dvi_algorithm = functools.partial(dvi.Control,
                                       step_size=1.,
                                       beta=1.,
+                                      divide_beta_by_num_states=True,
                                       initial_r_bar=0.)
     algorithm_constructors.append(dvi_algorithm)
 
   if _MDVI.value:
-    ss = [1.] # [.1, .25, .5, 1., 2.]
-    bs = [1.] # [.1, .25, .5, 1., 2.]
-    for s in ss:
-      for b in bs:
-        mdvi_algorithm_1 = functools.partial(mdvi.Control1,
-                                             step_size=s,
-                                             beta=b,
-                                             initial_r_bar=0.,
-                                             threshold=.01)
-        algorithm_constructors.append(mdvi_algorithm_1)
+    # THIS WORKS ON EVERYTHING EXCEPT MDP4 (.05, .1)
+    # MDP4 works with (.001, .001)
+    # mdvi_algorithm_1 = functools.partial(mdvi.Control1,
+    #                                      step_size=0.05,
+    #                                      beta=.1,
+    #                                      divide_beta_by_num_states=True,
+    #                                      initial_r_bar=0.,
+    #                                      threshold=.01)
+    # Actually using a large threshold because that works fast, but shows that
+    # the algorithm is probably flawed.
+    mdvi_algorithm_1 = functools.partial(mdvi.Control1,
+                                         step_size=1.,
+                                         beta=1.,
+                                         divide_beta_by_num_states=True,
+                                         initial_r_bar=0.,
+                                         threshold=10.)
+    algorithm_constructors.append(mdvi_algorithm_1)
+
     mdvi_algorithm_2 = functools.partial(mdvi.Control2,
                                          step_size=1.,
                                          beta=1.,
+                                         divide_step_size_by_num_states=False,
+                                         divide_beta_by_num_states=True,
                                          initial_r_bar=0.,
                                          threshold=.01)  # not used.
     algorithm_constructors.append(mdvi_algorithm_2)
@@ -258,8 +291,7 @@ def main(argv):
   if _MM1_1.value:
     environments.append(mm1_queue.MM1_QUEUE_1(dtype=problem_dtype))
 
-  # measure_iters = [0, 1, 10, 50, 100, 200, 500, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 50000, 1000000]
-  measure_iters = [25000, 50000, 100000, 250000, 50000, 1000000]
+  measure_iters = [(i+1)*10000 for i in range(100)]
   if not environments:
     raise ValueError('At least one environment required.')
 

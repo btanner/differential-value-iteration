@@ -26,8 +26,21 @@ class Evaluation(abc.ABC):
   def get_estimates(self) -> Dict[str, Union[np.ndarray, float]]:
     """Returns estimated quantities in a dictionary."""
 
+  @property
+  def pretty_name(self) -> str:
+    module_name = self.__class__.__module__.split('.')[-1]
+    return module_name + '::' + self.__class__.__name__
+
+  def state_values(self) -> np.ndarray:
+    raise NotImplementedError('state_values not defined for this algorithm.')
+
+
 class Control(Evaluation):
 
   @abc.abstractmethod
   def greedy_policy(self) -> np.ndarray:
     """Returns the best action in each state."""
+
+  def converged(self, tol: float) -> bool:
+    """Checks if converged."""
+    raise NotImplementedError(f'Algorithm does not implement converged.')

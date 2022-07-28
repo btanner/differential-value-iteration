@@ -26,30 +26,33 @@ class PolicyTest(parameterized.TestCase):
     environment = mdp_constructor(dtype=dtype)
     rvi_control = rvi.Control(
         mdp=environment,
-        step_size=.75,
+        step_size=1.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         reference_index=0,
         synchronized=True)
     dvi_control = dvi.Control(
         mdp=environment,
-        step_size=.1,
-        beta=.1,
+        step_size=1.,
+        beta=1.,
+        divide_beta_by_num_states=True,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
     mdvi_control_1 = mdvi.Control1(
         mdp=environment,
-        step_size=.1,
-        beta=.1,
+        step_size=1.,
+        beta=1.,
+        divide_beta_by_num_states=True,
         threshold=.1,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
     mdvi_control_2 = mdvi.Control2(
         mdp=environment,
-        step_size=.1,
-        beta=.1,
-        threshold=.1,
+        step_size=1.,
+        beta=1.,
+        divide_beta_by_num_states=True,
+        threshold=.1,  # Not used for this algorithm; inherited from control_1.
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -75,30 +78,33 @@ class PolicyTest(parameterized.TestCase):
     environment = mdp_constructor(dtype=dtype)
     rvi_control = rvi.Control(
         mdp=environment,
-        step_size=.75,
+        step_size=1.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         reference_index=0,
         synchronized=False)
     dvi_control = dvi.Control(
         mdp=environment,
-        step_size=.1,
-        beta=.1,
+        step_size=1.,
+        beta=1.,
+        divide_beta_by_num_states=True,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
     mdvi_control_1 = mdvi.Control1(
         mdp=environment,
-        step_size=.1,
-        beta=.1,
+        step_size=1.,
+        beta=1.,
+        divide_beta_by_num_states=True,
         threshold=.1,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
     mdvi_control_2 = mdvi.Control2(
         mdp=environment,
-        step_size=.1,
-        beta=.1,
-        threshold=.1,
+        step_size=1.,
+        beta=1.,
+        divide_beta_by_num_states=True,
+        threshold=.1,  # Not used for this algorithm; inherited from control_1.
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
@@ -126,17 +132,19 @@ class PolicyTest(parameterized.TestCase):
     environment = mdp_constructor(dtype=dtype)
     mdvi_control_1 = mdvi.Control1(
         mdp=environment,
-        step_size=.1,
-        beta=.1,
+        step_size=1.,
+        beta=1.,
+        divide_beta_by_num_states=True,
         threshold=.1,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
     mdvi_control_2 = mdvi.Control2(
         mdp=environment,
-        step_size=.1,
-        beta=.1,
-        threshold=.1,
+        step_size=1.,
+        beta=1.,
+        divide_beta_by_num_states=True,
+        threshold=.1,  # Not used for this algorithm; inherited from control_1.
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)

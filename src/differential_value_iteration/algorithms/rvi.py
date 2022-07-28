@@ -1,13 +1,20 @@
 """Evaluation and Control implementations of Relative Value Iteration."""
 
+from typing import Optional
+
 import numpy as np
 from absl import logging
+
 from differential_value_iteration.algorithms import algorithm
+from differential_value_iteration.algorithms import async_strategies
 from differential_value_iteration.environments import structure
 
 
 class Evaluation(algorithm.Evaluation):
-  """Relative Value Iteration for prediction."""
+  """Relative Value Iteration for prediction.
+
+  Async methods here use an analagous strategy that is used in dvi.py. This is
+  for comparison, not because async RVI is a real algorithm."""
 
   def __init__(
       self,
@@ -15,14 +22,29 @@ class Evaluation(algorithm.Evaluation):
       initial_values: np.ndarray,
       step_size: float,
       reference_index: int,
-      synchronized: bool):
+      synchronized: bool,
+      async_manager_fn: Optional[async_strategies.AsyncManager] = None,
+  ):
+    """Creates the evaluation algorithm.
+    Args:
+        mrp: The problem.
+        initial_values: Initial state values.
+        step_size: Step size. Will be scaled by number of states.
+        reference_index: Which state to use as the reference index.
+        synchronized: If True, execute synchronous updates of all states.
+            Otherwise execute asynch updates according to async_strategy.
+        async_manager_fn: Constructor for async manager.
+    """
     self.mrp = mrp
     # Ensure internal value types match environment precision.
     self.initial_values = initial_values.copy().astype(mrp.rewards.dtype)
     self.step_size = mrp.rewards.dtype.type(step_size)
     self.reference_index = reference_index
-    self.index = 0
     self.synchronized = synchronized
+    if not async_manager_fn:
+      async_manager_fn = async_strategies.RoundRobinASync
+    self.async_manager = async_manager_fn(num_states=mrp.num_states,
+                                          start_state=0)
     self.reset()
 
   def reset(self):
@@ -30,7 +52,7 @@ class Evaluation(algorithm.Evaluation):
 
   def diverged(self) -> bool:
     if not np.isfinite(self.current_values).all():
-      logging.warn('Current values not finite in RVI.')
+      logging.warning('Current values not finite in RVI.')
       return True
     return False
 
@@ -51,12 +73,13 @@ class Evaluation(algorithm.Evaluation):
     return changes
 
   def update_async(self) -> np.ndarray:
-    change = self.mrp.rewards[self.index] + np.dot(
-        self.mrp.transitions[self.index],
+    index = self.async_manager.next_state
+    change = self.mrp.rewards[index] + np.dot(
+        self.mrp.transitions[index],
         self.current_values - self.current_values[
-          self.reference_index]) - self.current_values[self.index]
-    self.current_values[self.index] += self.step_size * change
-    self.index = (self.index + 1) % self.mrp.num_states
+          self.reference_index]) - self.current_values[index]
+    self.current_values[index] += self.step_size * change
+    self.async_manager.update(change)
     return change
   
   def get_estimates(self):
@@ -72,14 +95,28 @@ class Control(algorithm.Control):
       initial_values: np.ndarray,
       step_size: float,
       reference_index: int,
-      synchronized: bool):
+      synchronized: bool,
+      async_manager_fn: Optional[async_strategies.AsyncManager] = None,
+  ):
+    """Creates the control algorithm.
+    Args:
+        mdp: The problem.
+        initial_values: Initial state values.
+        step_size: Step size.
+        synchronized: If True, execute synchronous updates of all states.
+            Otherwise execute asynch updates according to async_strategy.
+        async_manager_fn: Constructor for async manager.
+    """
     self.mdp = mdp
     # Ensure internal value types match environment precision.
     self.initial_values = initial_values.copy().astype(mdp.rewards.dtype)
     self.step_size = mdp.rewards.dtype.type(step_size)
     self.reference_index = reference_index
-    self.index = 0
     self.synchronized = synchronized
+    if not async_manager_fn:
+      async_manager_fn = async_strategies.RoundRobinASync
+    self.async_manager = async_manager_fn(num_states=mdp.num_states,
+                                          start_state=0)
     self.reset()
 
   def reset(self):
@@ -87,7 +124,7 @@ class Control(algorithm.Control):
 
   def diverged(self) -> bool:
     if not np.isfinite(self.current_values).all():
-      logging.warn('Current values not finite in RVI.')
+      logging.warning('Current values not finite in RVI.')
       return True
     return False
 
@@ -99,23 +136,32 @@ class Control(algorithm.Control):
       return self.update_sync()
     return self.update_async()
 
-  def update_sync(self) -> np.ndarray:
+  def converged(self, tol: float) -> bool:
+    sync_changes = self.calc_sync_changes()
+    return np.mean(np.abs(sync_changes)) < tol
+
+  def calc_sync_changes(self) -> np.ndarray:
     temp_s_by_a = self.mdp.rewards + np.dot(self.mdp.transitions,
                                             self.current_values -
                                             self.current_values[
                                               self.reference_index]) - self.current_values
-    changes = np.max(temp_s_by_a, axis=0)
+    return np.max(temp_s_by_a, axis=0)
+
+
+  def update_sync(self) -> np.ndarray:
+    changes = self.calc_sync_changes()
     self.current_values += self.step_size * changes
     return changes
 
   def update_async(self) -> np.ndarray:
-    temp_a = self.mdp.rewards[:, self.index] + np.dot(
-        self.mdp.transitions[:, self.index],
+    index = self.async_manager.next_state
+    temp_a = self.mdp.rewards[:, index] + np.dot(
+        self.mdp.transitions[:, index],
         self.current_values - self.current_values[self.reference_index]) - \
-             self.current_values[self.index]
+             self.current_values[index]
     change = np.max(temp_a)
-    self.current_values[self.index] += self.step_size * change
-    self.index = (self.index + 1) % self.mdp.num_states
+    self.current_values[index] += self.step_size * change
+    self.async_manager.update(change)
     return change
 
   def greedy_policy(self) -> np.ndarray:
@@ -124,6 +170,9 @@ class Control(algorithm.Control):
                                             self.current_values[
                                               self.reference_index])
     return np.argmax(temp_s_by_a, axis=0)
+
+  def state_values(self) -> np.ndarray:
+    return self.current_values
 
   def get_estimates(self):
     return {'v': self.current_values, 'r_bar': self.current_values[self.reference_index]}

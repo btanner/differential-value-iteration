@@ -19,7 +19,17 @@ config.update("jax_enable_x64", True)
 
 def create(seed: int, num_states: int, num_actions: int,
     branching_factor: int, dtype: np.dtype) -> structure.MarkovDecisionProcess:
-  """Creates transition and reward matrices for GARET instance."""
+  """Creates transition and reward matrices for GARET instance.
+
+  Note: The experiments in this codebase use the expectation model of the MDP
+  for rewards, not sampled values. So, the typical standard deviation parameter
+  is omitted because it is only relevant when sampling rewards.
+
+  Args:
+    seed: Value to seed JAX's random num generator.
+    num_states: Number of states in the MDP.
+    num_actions: Number of actions in the MDP.
+  """
   rng_key = jax.random.PRNGKey(seed=seed)
   garet_final_shape = (num_states, num_actions, num_states)
   # Keys for branching_factor next state transitions for all (s, a) pairs.
@@ -80,7 +90,6 @@ def create(seed: int, num_states: int, num_actions: int,
   # Marginalize rewards matrix for structure.MarkovDecisionProcess.
   reward_matrix_marginalized = jax.vmap(jax.vmap(jnp.dot))(transition_matrix,
                                                            reward_matrix)
-
   # Restructure for structure.MarkovDecisionProcess (A, S, S') vs (S, A, S').
   transition_matrix = jnp.swapaxes(transition_matrix, 0, 1)
   # Restructure for structure.MarkovDecisionProcess (A, S) vs (S, A).
@@ -88,7 +97,7 @@ def create(seed: int, num_states: int, num_actions: int,
   return structure.MarkovDecisionProcess(
       transitions=np.array(transition_matrix, dtype=dtype),
       rewards=np.array(reward_matrix_marginalized, dtype=dtype),
-      name=f'GARET S:{num_states} A:{num_actions} B:{branching_factor} K:{rng_key} D:{dtype.__name__}')
+      name=f'GARET S:{num_states} A:{num_actions} B:{branching_factor} K:{rng_key} D:{dtype}')
 
 GARET1 = functools.partial(create,
                            seed=42,
@@ -110,3 +119,9 @@ GARET_100 = functools.partial(create,
                            num_states=100,
                            num_actions=2,
                            branching_factor=3)
+
+GARET_1000 = functools.partial(create,
+                              seed=42,
+                              num_states=1000,
+                              num_actions=5,
+                              branching_factor=5)

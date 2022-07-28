@@ -1,4 +1,11 @@
-"""Runs control algorithms a few times to generate timing in a few problems."""
+"""Runs predictions algorithms on sample problems to test intuitions.
+
+This code is not used in our empirical results but may be handy to keep around.
+Essentially, it extracts Markov Reward Processes from some of our MDPs using
+hard-coded policies, and then we run the prediction algorithms on those MRPs.
+
+The prediction algoriths converge on all of these MRPs.
+"""
 
 import functools
 from typing import Callable
@@ -94,11 +101,11 @@ def main(argv):
   algorithm_constructors = []
 
   # Create constructors that only depends on params common to all algorithms.
-
   if _DVI.value:
     dvi_algorithm = functools.partial(dvi.Evaluation,
                                       step_size=1.,
                                       beta=1.,
+                                      divide_beta_by_num_states=True,
                                       initial_r_bar=0.)
     algorithm_constructors.append(dvi_algorithm)
 
@@ -106,6 +113,7 @@ def main(argv):
     mdvi_algorithm = functools.partial(mdvi.Evaluation,
                                        step_size=1.,
                                        beta=1.,
+                                       divide_beta_by_num_states=True,
                                        initial_r_bar=0.)
     algorithm_constructors.append(mdvi_algorithm)
   if _RVI.value:
