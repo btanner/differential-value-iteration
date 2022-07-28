@@ -1,4 +1,11 @@
-"""Runs control algorithms a few times to generate timing in a few problems."""
+"""Runs predictions algorithms on sample problems to test intuitions.
+
+This code is not used in our empirical results but may be handy to keep around.
+Essentially, it extracts Markov Reward Processes from some of our MDPs using
+hard-coded policies, and then we run the prediction algorithms on those MRPs.
+
+The prediction algoriths converge on all of these MRPs.
+"""
 
 import functools
 from typing import Callable
@@ -13,6 +20,7 @@ from differential_value_iteration.algorithms import dvi
 from differential_value_iteration.algorithms import mdvi
 from differential_value_iteration.algorithms import rvi
 from differential_value_iteration.environments import garet
+from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import mm1_queue
 from differential_value_iteration.environments import structure
 
@@ -33,6 +41,7 @@ _MDVI = flags.DEFINE_bool('mdvi', True,
 _RVI = flags.DEFINE_bool('rvi', True, 'Run Relative Value Iteration')
 
 # Environment flags
+_MDP4 = flags.DEFINE_bool('mdp4', True, 'Include MDP 4')
 _GARET1 = flags.DEFINE_bool('garet1', True, 'Include GARET 1')
 _GARET2 = flags.DEFINE_bool('garet2', True, 'Include GARET 2')
 _MM1_1 = flags.DEFINE_bool('MM1_1', True, 'Include MM1 Queue 1')
@@ -92,11 +101,11 @@ def main(argv):
   algorithm_constructors = []
 
   # Create constructors that only depends on params common to all algorithms.
-
   if _DVI.value:
     dvi_algorithm = functools.partial(dvi.Evaluation,
                                       step_size=1.,
                                       beta=1.,
+                                      divide_beta_by_num_states=True,
                                       initial_r_bar=0.)
     algorithm_constructors.append(dvi_algorithm)
 
@@ -104,6 +113,7 @@ def main(argv):
     mdvi_algorithm = functools.partial(mdvi.Evaluation,
                                        step_size=1.,
                                        beta=1.,
+                                       divide_beta_by_num_states=True,
                                        initial_r_bar=0.)
     algorithm_constructors.append(mdvi_algorithm)
   if _RVI.value:
@@ -123,6 +133,9 @@ def main(argv):
     mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
     environments.append(mrp)
     policy = (2, 1, 2, 3)
+    mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
+    environments.append(mrp)
+    policy = (2, 1, 1, 3)
     mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
     environments.append(mrp)
 
@@ -147,6 +160,13 @@ def main(argv):
     policy[:len(prefix)] = prefix
     mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
     environments.append(mrp)
+
+  if _MDP4.value:
+    mdp = micro.create_mdp4(dtype=problem_dtype)
+    _policies = ((0, 1, 0, 0, 0, 0, 0), (0, 0, 0, 1, 0, 0, 0))
+    for policy in _policies:
+      mrp = mdp.as_markov_reward_process_from_deterministic_policy(policy)
+      environments.append(mrp)
 
   if not environments:
     raise ValueError('At least one environment required.')

@@ -1,3 +1,4 @@
+"""Definitions of Micro MRP and MDPs."""
 import numpy as np
 from differential_value_iteration.environments import structure
 
@@ -54,7 +55,7 @@ def create_mrp3(dtype: np.dtype) -> structure.MarkovRewardProcess:
           [.2, .8],
           [.2, .8]], dtype=dtype),
       rewards=np.array([1, 1], dtype=dtype),
-      name=f'mrp3 ({dtype.__name__})')
+      name=f'mrp3 ({dtype})')
 
 
 def create_mdp1(dtype: np.dtype) -> structure.MarkovDecisionProcess:
@@ -74,12 +75,12 @@ def create_mdp1(dtype: np.dtype) -> structure.MarkovDecisionProcess:
           [1, 1],  # first action
           [0, 0]  # second action
       ], dtype=dtype),
-      name=f'mdp1 ({dtype.__name__})',
+      name=f'mdp1 ({dtype})',
   )
 
 
 def create_mdp2(dtype: np.dtype) -> structure.MarkovDecisionProcess:
-  """Creates a 2-state MDP.
+  """Creates a 2-state MDP. The 2 states are not communicating.
    Args:
      dtype: Dtype for reward/transition matrices: np.float32/np.float64
 
@@ -115,10 +116,39 @@ def create_mdp3(dtype: np.dtype) -> structure.MarkovDecisionProcess:
           [1., 2., 3.],  # first action
           [0., 0., 0.]  # second action
       ], dtype=dtype),
-      name=f'mdp2 ({dtype.__name__})',
+      name=f'mdp3 ({dtype})',
   )
 
+def create_mdp4(dtype: np.dtype) -> structure.MarkovDecisionProcess:
+  """Creates a 4-state MDP, maybe a MDVI Control 1 counter example.
+   Args:
+     dtype: Dtype for reward/transition matrices: np.float32/np.float64
 
-# Remove these soon.
-mdp1 = create_mdp1(np.float32)
-mdp2 = create_mdp2(np.float32)
+   Returns:
+     The MDP.
+   """
+  return structure.MarkovDecisionProcess(
+        transitions=np.array([
+            # First Action (continue)
+            [[0.5, 0.5, 0.,  0.,  0.,  0.,   0., ],
+             [0.5, 0.5, 0.,  0.,  0.,  0.,   0., ],
+             [0.5, 0.,  0.,  0.5, 0.,  0.,   0., ],
+             [0.5, 0.,  0.,  0.5, 0.,  0.,   0., ],
+             [0.,  0.,  0.5, 0.,  0.,  0.5,  0., ],
+             [0.,  0.,  0.5, 0.,  0.,  0.5,  0., ],
+             [0.,  0.,  0.,  0.,  0.5, 0.,   0.5,]],
+            # Second Action (admit)
+            [[0.5, 0.5, 0.,  0.,  0.,  0.,   0., ],
+             [0.5, 0.,  0.,  0.5, 0.,  0.,   0., ],
+             [0.5, 0.,  0.,  0.5, 0.,  0.,   0., ],
+             [0.,  0.,  0.5, 0.,  0.,  0.5,  0., ],
+             [0.,  0.,  0.5, 0.,  0.,  0.5,  0., ],
+             [0.,  0.,  0.,  0.,  0.5, 0.,   0.5,],
+             [0.,  0.,  0.,  0.,  0.5,  0.,  0.5,]],
+            ], dtype=dtype),
+        rewards=np.array([
+            [ 0.,  0., -1., -1., -2., -2.,  -3.],  # first action (continue)
+            [-1.,  9., -2.,  8., -3.,  7.,  -4.]  # second action (admit)
+        ], dtype=dtype),
+        name=f'mdp4 ({dtype})',
+    )

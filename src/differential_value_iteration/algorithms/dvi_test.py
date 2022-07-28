@@ -1,5 +1,4 @@
 """Tests for basic functioning of DVI algorithms."""
-import functools
 import itertools
 from typing import Callable
 
@@ -16,37 +15,15 @@ _DTYPES = (np.float64, )
 
 class DVIEvaluationTest(parameterized.TestCase):
 
-  @parameterized.parameters(_DTYPES,)
-  def test_dvi_sync_converges(self, dtype: np.dtype):
-    tolerance_places = 6 if dtype is np.float32 else 10
-    environment = micro.create_mrp1(dtype)
-    algorithm = dvi.Evaluation(
-        mrp=environment,
-        step_size=.5,
-        beta=.5,
-        initial_r_bar=.5,
-        initial_values=np.zeros(environment.num_states, dtype=dtype),
-        synchronized=True)
-
-    for _ in range(50):
-      changes = algorithm.update()
-
-    with self.subTest('did_not_diverge'):
-      self.assertFalse(algorithm.diverged())
-    with self.subTest('maintained_types'):
-      self.assertTrue(algorithm.types_ok())
-    with self.subTest('converged'):
-      self.assertAlmostEqual(np.sum(np.abs(changes)), 0.,
-                             places=tolerance_places)
-
   @parameterized.parameters(_DTYPES)
   def test_dvi_sync_converges(self, dtype: np.dtype):
     tolerance_places = 6 if dtype is np.float32 else 10
     environment = micro.create_mrp1(dtype)
     algorithm = dvi.Evaluation(
         mrp=environment,
-        step_size=1.,
+        step_size=.5,
         beta=1.,
+        divide_beta_by_num_states=True,
         initial_r_bar=.5,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -68,8 +45,9 @@ class DVIEvaluationTest(parameterized.TestCase):
     environment = micro.create_mrp1(dtype)
     algorithm = dvi.Evaluation(
         mrp=environment,
-        step_size=1.,
+        step_size=.5,
         beta=1.,
+        divide_beta_by_num_states=True,
         initial_r_bar=.5,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
@@ -100,8 +78,9 @@ class DVIControlTest(parameterized.TestCase):
     environment = mdp_constructor(dtype=dtype)
     algorithm = dvi.Control(
         mdp=environment,
-        step_size=1.,
+        step_size=1./environment.num_states,
         beta=1.,
+        divide_beta_by_num_states=True,
         initial_r_bar=0.,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -129,6 +108,7 @@ class DVIControlTest(parameterized.TestCase):
         mdp=environment,
         step_size=.5,
         beta=.5,
+        divide_beta_by_num_states=True,
         initial_r_bar=.0,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)

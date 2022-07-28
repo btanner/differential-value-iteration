@@ -1,4 +1,26 @@
-"""Runs control algorithms a few times to generate timing in a few problems."""
+"""Runs control algorithms on sample problems to test intuitions.
+
+This benchmark is not part of our formal empirical results. It is a nice example
+of how to run each of the control algorithms, including how you can empirically
+evaluate policies by extracting and simulating Markov Chains.
+
+By default, this will run all the control algorithms on several sample
+problems and report convergence, timing, final policy, and sample return from
+that policy. Most of this can be controlled with flags.
+
+Roughly speaking, most of the algorithms converge to the same policy on the test
+problems. The exceptions are:
+
+DVI and RVI do not converge on MDP2: 2 states that are not communicating.
+They do find the optimal policy.
+
+MDVI Control 1 seems harder to configure, and experimentation is required to
+choose an appropriate max number of iterations, step size, beta when small
+threshold values are used.
+
+Ultimately, it runs here with a very large (ie: broken) threshold, and converges
+quickly with step_size and beta = 1.
+"""
 
 import functools
 import time
@@ -20,7 +42,7 @@ from differential_value_iteration.environments import mm1_queue
 from differential_value_iteration.environments import structure
 
 FLAGS = flags.FLAGS
-_NUM_ITERS = flags.DEFINE_integer('num_iters', 1000,
+_NUM_ITERS = flags.DEFINE_integer('num_iters', 100000,
                                   'Number of iterations per algorithm')
 _SYNCHRONIZED = flags.DEFINE_bool('synchronized', True,
                                   'Run algorithms in synchronized mode')
@@ -42,6 +64,7 @@ _EVAL_ALL_STATES = flags.DEFINE_bool('all_states', False,
 # Environment flags
 _MDP1 = flags.DEFINE_bool('mdp1', True, 'Include MDP1 in benchmark')
 _MDP2 = flags.DEFINE_bool('mdp2', True, 'Include MDP2 in benchmark')
+_MDP4 = flags.DEFINE_bool('mdp4', True, 'Include MDP4 in benchmark')
 _GARET1 = flags.DEFINE_bool('garet1', True, 'Include GARET 1 in benchmark')
 _GARET2 = flags.DEFINE_bool('garet2', True, 'Include GARET 2 in benchmark')
 _GARET3 = flags.DEFINE_bool('garet3', True, 'Include GARET 3 in benchmark')
@@ -86,6 +109,9 @@ def run(
       alg_name = module_name + '::' + alg.__class__.__name__
       print(f'\n{alg_name}')
       changes = [0.] # Dummy starting value.
+      last_policy = None
+      policy_switches = 0
+      all_late_policies = set()
       for i in range(num_iters):
         if i in measure_iters:
           measure_policy(i, alg, environment, eval_all_states, last_change=np.mean(np.abs(changes)), final=False)
@@ -99,6 +125,16 @@ def run(
           change_summary += np.mean(np.abs(changes))
         # Basically divide by num_states if running async.
         change_summary /= inner_loop_range
+        if i == 10000:
+          last_policy = str(alg.greedy_policy())
+          all_late_policies.add(last_policy)
+        if i > 10000:
+          this_policy = str(alg.greedy_policy())
+          if this_policy != last_policy:
+            policy_switches += 1
+            last_policy = this_policy
+            all_late_policies.add(last_policy)
+
         if alg.diverged():
           diverged = True
           converged = False
@@ -116,6 +152,8 @@ def run(
         converged_string = 'DIVERGED'
       print(
           f'Summary: Average Time:{1000. * total_time / i:.3f} ms\tConverged:{converged_string}\t{i} iters\tMean final Change:{np.mean(np.abs(changes)):.5f}')
+      if not converged:
+        print(f'After iter 10000, policy switched:{policy_switches} times and saw these policies:{all_late_policies}')
 
 def measure_policy(iteration: int, alg: algorithm.Control, environment: structure.MarkovDecisionProcess, eval_all_states: bool, last_change: float, final: bool):
   policy = alg.greedy_policy()
@@ -165,7 +203,7 @@ def sample_return(policy, environment, start_state, length):
 
 def estimate_policy_average_reward(policy, environment, all_states: bool):
   length = 1000
-  num_reps = 100
+  num_reps = 10
   starting_states = np.arange(environment.num_states) if all_states else [0]
 
   means = np.zeros(len(starting_states), dtype=np.float64)
@@ -194,19 +232,34 @@ def main(argv):
     dvi_algorithm = functools.partial(dvi.Control,
                                       step_size=1.,
                                       beta=1.,
+                                      divide_beta_by_num_states=True,
                                       initial_r_bar=0.)
     algorithm_constructors.append(dvi_algorithm)
 
   if _MDVI.value:
+    # THIS WORKS ON EVERYTHING EXCEPT MDP4 (.05, .1)
+    # MDP4 works with (.001, .001)
+    # mdvi_algorithm_1 = functools.partial(mdvi.Control1,
+    #                                      step_size=0.05,
+    #                                      beta=.1,
+    #                                      divide_beta_by_num_states=True,
+    #                                      initial_r_bar=0.,
+    #                                      threshold=.01)
+    # Actually using a large threshold because that works fast, but shows that
+    # the algorithm is probably flawed.
     mdvi_algorithm_1 = functools.partial(mdvi.Control1,
                                          step_size=1.,
                                          beta=1.,
+                                         divide_beta_by_num_states=True,
                                          initial_r_bar=0.,
-                                         threshold=.01)
+                                         threshold=10.)
     algorithm_constructors.append(mdvi_algorithm_1)
+
     mdvi_algorithm_2 = functools.partial(mdvi.Control2,
                                          step_size=1.,
                                          beta=1.,
+                                         divide_step_size_by_num_states=False,
+                                         divide_beta_by_num_states=True,
                                          initial_r_bar=0.,
                                          threshold=.01)  # not used.
     algorithm_constructors.append(mdvi_algorithm_2)
@@ -225,6 +278,8 @@ def main(argv):
     environments.append(micro.create_mdp1(dtype=problem_dtype))
   if _MDP2.value:
     environments.append(micro.create_mdp2(dtype=problem_dtype))
+  if _MDP4.value:
+    environments.append(micro.create_mdp4(dtype=problem_dtype))
   if _GARET1.value:
     environments.append(garet.GARET1(dtype=problem_dtype))
   if _GARET2.value:
@@ -236,7 +291,7 @@ def main(argv):
   if _MM1_1.value:
     environments.append(mm1_queue.MM1_QUEUE_1(dtype=problem_dtype))
 
-  measure_iters = [0, 1, 10, 50, 100, 200, 500, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 50000, 1000000]
+  measure_iters = [(i+1)*10000 for i in range(100)]
   if not environments:
     raise ValueError('At least one environment required.')
 
