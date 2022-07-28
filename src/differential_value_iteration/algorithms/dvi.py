@@ -57,6 +57,9 @@ class Evaluation(algorithm.Evaluation):
     self.current_values = self.initial_values.copy()
     self.r_bar = self.initial_r_bar
 
+  def state_values(self) -> np.ndarray:
+    return self.current_values
+
   def diverged(self) -> bool:
     if not np.isfinite(self.current_values).all():
       logging.warning("Current values not finite in DVI.")

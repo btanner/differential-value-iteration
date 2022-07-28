@@ -1,5 +1,13 @@
-"""Evaluation and Control Multichain Differential Value Iteration."""
-# TODO: Final cleanup not complete.
+"""Evaluation and Control Multichain Differential Value Iteration.
+
+As part of this project we did not complete this code because we did not
+conduct any significant empirical exploration of multichain MDPs.
+
+This implementation is mid-refactor between an initial implementation and a
+faster, vectorized, NumPy version.
+
+It should be functional, but no promises.
+"""
 from typing import Union
 
 import numpy as np
@@ -11,7 +19,7 @@ from differential_value_iteration.environments import structure
 _DEBUG_ITER = -1
 
 class Evaluation(algorithm.Evaluation):
-  """Multichain DVI for prediction, section 3.1.1 in paper."""
+  """Multichain DVI for prediction."""
 
   def __init__(
       self,
@@ -41,6 +49,9 @@ class Evaluation(algorithm.Evaluation):
     self.current_values = None
     self.r_bar = None
     self.reset()
+
+  def state_values(self) -> np.ndarray:
+    return self.current_values
 
   def reset(self):
     self.current_values = self.initial_values.copy()
@@ -87,7 +98,7 @@ class Evaluation(algorithm.Evaluation):
 
 
 class Control1(algorithm.Control):
-  """Multichain DVI for prediction, section 3.1.1 in paper."""
+  """Multichain DVI for Control (Algorithm 1)."""
 
   def __init__(
       self,
@@ -125,6 +136,9 @@ class Control1(algorithm.Control):
     self.current_values = self.initial_values.copy()
     self.r_bar = self.initial_r_bar.copy()
     self.iteration = 0
+
+  def converged(self, tol: float) -> bool:
+    raise NotImplementedError('Converged not implemented for MDVI.')
 
   def diverged(self) -> bool:
     if not np.isfinite(self.current_values).all():
@@ -288,9 +302,6 @@ class Control1(algorithm.Control):
     best_actions = np.zeros(self.mdp.num_states, dtype=np.int32)
     for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), r_bar):
       max_actions = np.argwhere(action_vals > max(action_vals) - self.threshold)
-      immediate_rewards = self.mdp.rewards[max_actions, s]
-      this_state_reward_rate = r_bar_s
-      next_values_per_action = np.dot(self.mdp.transitions[max_actions, s], self.current_values)
       temp_a = self.mdp.rewards[max_actions, s] - r_bar_s + np.dot(
           self.mdp.transitions[max_actions, s], self.current_values)
       best_actions[s] = max_actions[np.argmax(temp_a)]
@@ -300,8 +311,11 @@ class Control1(algorithm.Control):
   def get_estimates(self):
     return {'v': self.current_values, 'r_bar': self.r_bar}
 
+  def state_values(self) -> np.ndarray:
+    return self.current_values
 
 class Control2(Control1):
+  """Multichain DVI for Control (Algorithm 2)."""
 
   def update_sync_orig(self) -> (np.ndarray, np.ndarray, np.ndarray):
     temp_s_by_a = np.zeros((self.mdp.num_states, self.mdp.num_actions))
