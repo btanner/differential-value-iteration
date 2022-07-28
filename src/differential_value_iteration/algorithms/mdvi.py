@@ -1,12 +1,23 @@
 """Evaluation and Control Multichain Differential Value Iteration.
 
-As part of this project we did not complete this code because we did not
+As part of this project we did not complete fully this code because we did not
 conduct any significant empirical exploration of multichain MDPs.
 
 This implementation is mid-refactor between an initial implementation and a
 faster, vectorized, NumPy version.
 
 It should be functional, but no promises.
+
+Control Algorithm 2 seems strictly better than Algorithm 1:
+ - easier to pick parameters that converge
+   (step_size = 1, beta = 1, divide_beta_by_num_states = True)
+ - faster per iteration
+ - converges in few iterations
+
+Choosing the right combination of step size, beta, and threshold is tricky.
+
+It has been suggested that these algorithms may work better with a decay
+schedule on step sizes or state-dependent step sizes.
 """
 from typing import Union
 
@@ -28,10 +39,11 @@ class Evaluation(algorithm.Evaluation):
       initial_r_bar: Union[float, np.ndarray],
       step_size: float,
       beta: float,
+      divide_beta_by_num_states: bool,
       synchronized: bool):
 
-    step_size /= mrp.num_states
-    beta /= mrp.num_states
+    if divide_beta_by_num_states:
+      beta /= mrp.num_states
 
     self.mrp = mrp
     # Ensure internal value types match environment precision.
@@ -107,12 +119,13 @@ class Control1(algorithm.Control):
       initial_r_bar: Union[float, np.ndarray],
       step_size: float,
       beta: float,
+      divide_beta_by_num_states: bool,
       threshold: float,
       synchronized: bool):
     self.mdp = mdp
 
-    step_size /= mdp.num_states
-    beta /= mdp.num_states
+    if divide_beta_by_num_states:
+      beta /= mdp.num_states
 
     # Ensure internal value types match environment precision.
     self.initial_values = initial_values.copy().astype(mdp.rewards.dtype)
@@ -200,9 +213,9 @@ class Control1(algorithm.Control):
     changes = np.zeros(self.mdp.num_states, dtype=self.mdp.rewards.dtype)
     for (s, action_vals), r_bar_s in zip(enumerate(temp_s_by_a), r_bar):
       max_actions = np.argwhere(action_vals > max(action_vals) - self.threshold)
-      immediate_rewards = self.mdp.rewards[max_actions, s]
-      this_state_reward_rate = r_bar_s
-      next_values_per_action = np.dot(self.mdp.transitions[max_actions, s], self.current_values)
+      # immediate_rewards = self.mdp.rewards[max_actions, s]
+      # this_state_reward_rate = r_bar_s
+      # next_values_per_action = np.dot(self.mdp.transitions[max_actions, s], self.current_values)
       temp_a = self.mdp.rewards[max_actions, s] - r_bar_s + np.dot(
           self.mdp.transitions[max_actions, s], self.current_values) - \
                self.current_values[s]
@@ -232,11 +245,11 @@ class Control1(algorithm.Control):
     return changes, new_current_values, new_r_bar
 
   def update_sync(self)-> np.ndarray:
-    orig_deltas, orig_new_values, orig_new_r_bar = self.update_sync_orig()
+    # orig_deltas, orig_new_values, orig_new_r_bar = self.update_sync_orig()
     deltas, new_values, new_r_bar = self.update_sync_tanno()
-    assert(np.allclose(orig_deltas, deltas))
-    assert(np.allclose(orig_new_values, new_values))
-    assert(np.allclose(orig_new_r_bar, new_r_bar))
+    # assert(np.allclose(orig_deltas, deltas))
+    # assert(np.allclose(orig_new_values, new_values))
+    # assert(np.allclose(orig_new_r_bar, new_r_bar))
 
     self.current_values = new_values
     self.r_bar = new_r_bar

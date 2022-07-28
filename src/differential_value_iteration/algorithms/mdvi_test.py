@@ -31,8 +31,9 @@ class MDVIEvaluationTest(parameterized.TestCase):
                                                     0., dtype)
     algorithm = mdvi.Evaluation(
         mrp=environment,
-        step_size=1.,
+        step_size=.5,  # This is finicky. Values > .5 do not work.
         beta=1.,
+        divide_beta_by_num_states=True,
         initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=True)
@@ -64,8 +65,9 @@ class MDVIEvaluationTest(parameterized.TestCase):
                                                     0., dtype)
     algorithm = mdvi.Evaluation(
         mrp=environment,
-        step_size=1.,
+        step_size=.5,
         beta=1.,
+        divide_beta_by_num_states=True,
         initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
         synchronized=False)
@@ -104,6 +106,7 @@ class MDVIControlTest(parameterized.TestCase):
         mdp=environment,
         step_size=1.,
         beta=1.,
+        divide_beta_by_num_states=True,
         threshold=.1,
         initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=dtype),
@@ -140,6 +143,7 @@ class MDVIControlTest(parameterized.TestCase):
         mdp=environment,
         step_size=1.,
         beta=.1,
+        divide_beta_by_num_states=True,
         threshold=.1,
         initial_r_bar=initial_r_bar,
         initial_values=np.zeros(environment.num_states, dtype=dtype),

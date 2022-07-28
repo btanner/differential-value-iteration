@@ -80,7 +80,7 @@ def create_mdp1(dtype: np.dtype) -> structure.MarkovDecisionProcess:
 
 
 def create_mdp2(dtype: np.dtype) -> structure.MarkovDecisionProcess:
-  """Creates a 2-state MDP.
+  """Creates a 2-state MDP. The 2 states are not communicating.
    Args:
      dtype: Dtype for reward/transition matrices: np.float32/np.float64
 

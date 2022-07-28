@@ -1,3 +1,10 @@
+"""Base classes for Markov Reward and Markov Decision Processes.
+
+These are the basic structures that environments are based on.
+
+They are essentially just transition and reward matrices, with some extra
+convenience methods for labelling and validity checks.
+"""
 import dataclasses
 from typing import Sequence
 
@@ -109,7 +116,7 @@ class MarkovDecisionProcess:
     return len(self.transitions)
 
   def as_markov_chain_from_deterministic_policy(self,
-      policy: Sequence[int]) -> ... :  #quantecon.MarkovChain:
+      policy: Sequence[int]) -> quantecon.MarkovChain:
     """Returns Markov Chain implied by transitions and deterministic policy."""
     state_range = np.arange(0, self.num_states)
     policy_transitions = self.transitions[policy, state_range]
@@ -126,7 +133,7 @@ class MarkovDecisionProcess:
                                name=f'MRP_Policy{policy}_from_{self.name}')
 
   def as_markov_chain_from_stochastic_policy(self,
-      policy: np.ndarray) -> ... :  #quantecon.MarkovChain:
+      policy: np.ndarray) -> quantecon.MarkovChain:
     """Returns Markov Chain implied by transitions and policy.
 
     Args:
@@ -141,7 +148,8 @@ class MarkovDecisionProcess:
     policy_transitions = np.einsum('ij,ijk->jk', policy, self.transitions)
     return quantecon.markov.MarkovChain(policy_transitions)
 
-  def as_markov_chain(self) -> ... :  #quantecon.MarkovChain:
+  def as_markov_chain(self) -> quantecon.MarkovChain:
+    """Returns the Markov Chain implied by the uniform random policy."""
     policy = np.full(shape=self.transitions.shape[:2],      # (A, S)
                      fill_value=1 / len(self.transitions),  # (1/num_actions)
                      dtype=self.transitions.dtype)
