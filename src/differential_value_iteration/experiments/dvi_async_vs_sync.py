@@ -9,7 +9,6 @@ from absl import flags
 from differential_value_iteration.algorithms import async_strategies
 from differential_value_iteration.algorithms import dvi
 from differential_value_iteration.environments import garet
-from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import mm1_queue
 from differential_value_iteration.experiments import simple_experiment_runner
 
@@ -152,10 +151,10 @@ def main(argv):
           dvi_results.state_values[-1] - dvi_results.state_values[iteration]))
         sync_policy_distance = np.mean(
           np.abs(dvi_results.policies[-1] - dvi_results.policies[iteration]))
-        print(
-          f'Sync Val Dist:{sync_val_distance:.3f}\tSync Policy Dist:{sync_policy_distance:.3f}')
-      else:
-        print(f'Sync converged by now.')
+        # print(
+        #   f'Sync Val Dist:{sync_val_distance:.3f}\tSync Policy Dist:{sync_policy_distance:.3f}')
+      # else:
+      #   print(f'Sync converged by now.')
 
     plt.figure(figsize=(10, 5))
     ax = plt.axes()
@@ -172,14 +171,7 @@ def main(argv):
         std_dev = np.std(series_np, axis=0)
         std_error = std_dev / np.sqrt(num_samples)
         y = np.mean(series_np, axis=0)
-        # import pdb
-        # pdb.set_trace()
         plt.errorbar(x=list(range(i)),y=y, yerr=std_error, label=name)
-        # plt.plot(y, label=name)
-        # plt.fill_between(list(range(i)), y-std_error, y+std_error)
-        print(f'plotting series with len {len(series)} and name:{name}')
-        # print(series)
-    # plt.plot(value_distances['async'])
 
     plt.legend(prop={'size':16})
     plt.title(f'{env_name}: Distance From Final Values',size=18)
@@ -191,24 +183,9 @@ def main(argv):
       ax.set_xscale('log')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    print('saving...')
-    plt.savefig(f'plots/{environment.name}_value_distance.png')
-    # plt.figure()
-    # for name, series in policy_distances.items():
-    #   print(f'Plotting: {name}')
-    #   plt.plot(series, label=name)
-    # plt.legend()
-    # # plt.plot(value_distances['async'])
-    # plt.savefig(f'plots/{environment.name}_policy_distance.png')
-    # # plt.plot(policy_distances['sync'])
-    # # plt.plot(policy_distances['async'])
-    # # plt.savefig('policy_distance.png')
-    # # print(dvi_results.converged)
-    # # print(async_dvi_results.converged)
-    # # print('Sync vs Async final value diff:', np.mean(np.abs(
-    # #   dvi_results.state_values[-1] - async_dvi_results.state_values[-1])))
-    # # print('Sync vs Async final policy diff:', np.mean(
-    # #   np.abs(dvi_results.policies[-1] - async_dvi_results.policies[-1])))
+    file_name = f'plots/{environment.name}_value_distance.png'
+    print(f'saving to {file_name}')
+    plt.savefig(file_name)
 
 
 if __name__ == '__main__':

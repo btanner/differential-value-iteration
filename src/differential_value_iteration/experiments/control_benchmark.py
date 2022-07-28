@@ -4,7 +4,7 @@ This benchmark is not part of our formal empirical results. It is a nice example
 of how to run each of the control algorithms, including how you can empirically
 evaluate policies by extracting and simulating Markov Chains.
 
-By default, this will run all of the control algorithms on several sample
+By default, this will run all the control algorithms on several sample
 problems and report convergence, timing, final policy, and sample return from
 that policy. Most of this can be controlled with flags.
 
