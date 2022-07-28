@@ -15,9 +15,9 @@ from differential_value_iteration.environments import micro
 from differential_value_iteration.environments import mm1_queue
 from differential_value_iteration.experiments import simple_experiment_runner
 
-_MAX_ITERS = 128
+_MAX_ITERS = 148
 _CONVERGED_TOL = 1e-13
-_SAME_ITERATION_TOL = 3
+_SAME_ITERATION_TOL = 4
 
 _MDPS = (micro.create_mdp1, micro.create_mdp4, garet.GARET1,
          garet.GARET2, garet.GARET3, garet.GARET_100, mm1_queue.MM1_QUEUE_1,
@@ -61,6 +61,7 @@ class SyncDVIConvergenceTest(parameterized.TestCase):
     dvi_iterations = len(dvi_results.policies)
 
     iteration_difference = rvi_iterations - dvi_iterations
+
     with self.subTest('Similar Iterations'):
       self.assertLess(abs(iteration_difference), _SAME_ITERATION_TOL)
 
