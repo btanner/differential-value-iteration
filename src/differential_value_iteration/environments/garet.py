@@ -90,7 +90,6 @@ def create(seed: int, num_states: int, num_actions: int,
   # Marginalize rewards matrix for structure.MarkovDecisionProcess.
   reward_matrix_marginalized = jax.vmap(jax.vmap(jnp.dot))(transition_matrix,
                                                            reward_matrix)
-  print(reward_matrix_marginalized)
   # Restructure for structure.MarkovDecisionProcess (A, S, S') vs (S, A, S').
   transition_matrix = jnp.swapaxes(transition_matrix, 0, 1)
   # Restructure for structure.MarkovDecisionProcess (A, S) vs (S, A).

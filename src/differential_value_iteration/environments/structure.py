@@ -2,7 +2,7 @@ import dataclasses
 from typing import Sequence
 
 import numpy as np
-# import quantecon
+import quantecon
 
 _TRANSITION_SUM_TOLERANCE = 1e-14
 
@@ -53,9 +53,7 @@ class MarkovRewardProcess:
 
   def as_markov_chain(self):
     """Returns transitions as a quantecon Markov Chain."""
-    # TODO: RE-introduce quantecon if it ever works with Python 3.10+.
-    raise NotImplementedError('QuanEcon disabled due to compatibility issues.')
-    # return quantecon.markov.MarkovChain(self.transitions)
+    return quantecon.markov.MarkovChain(self.transitions)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -113,11 +111,9 @@ class MarkovDecisionProcess:
   def as_markov_chain_from_deterministic_policy(self,
       policy: Sequence[int]) -> ... :  #quantecon.MarkovChain:
     """Returns Markov Chain implied by transitions and deterministic policy."""
-    # TODO: RE-introduce quantecon if it ever works with Python 3.10+.
-    raise NotImplementedError('QuanEcon disabled due to compatibility issues.')
-    # state_range = np.arange(0, self.num_states)
-    # policy_transitions = self.transitions[policy, state_range]
-    # return quantecon.markov.MarkovChain(policy_transitions)
+    state_range = np.arange(0, self.num_states)
+    policy_transitions = self.transitions[policy, state_range]
+    return quantecon.markov.MarkovChain(policy_transitions)
 
   def as_markov_reward_process_from_deterministic_policy(self,
       policy: Sequence[int]) -> MarkovRewardProcess:
@@ -139,18 +135,14 @@ class MarkovDecisionProcess:
     Returns:
       A Markov Chain.
     """
-    # TODO: RE-introduce quantecon if it ever works with Python 3.10+.
-    raise NotImplementedError('QuanEcon disabled due to compatibility issues.')
-    # if policy.shape != self.transitions.shape[:2]:
-    #   raise ValueError(
-    #     f'policy shape:{policy.shape} does not fit transitions:{self.transitions.shape}')
-    # policy_transitions = np.einsum('ij,ijk->jk', policy, self.transitions)
-    # return quantecon.markov.MarkovChain(policy_transitions)
+    if policy.shape != self.transitions.shape[:2]:
+      raise ValueError(
+        f'policy shape:{policy.shape} does not fit transitions:{self.transitions.shape}')
+    policy_transitions = np.einsum('ij,ijk->jk', policy, self.transitions)
+    return quantecon.markov.MarkovChain(policy_transitions)
 
   def as_markov_chain(self) -> ... :  #quantecon.MarkovChain:
-    # TODO: RE-introduce quantecon if it ever works with Python 3.10+.
-    raise NotImplementedError('QuanEcon disabled due to compatibility issues.')
-    # policy = np.full(shape=self.transitions.shape[:2],      # (A, S)
-    #                  fill_value=1 / len(self.transitions),  # (1/num_actions)
-    #                  dtype=self.transitions.dtype)
-    # return self.as_markov_chain_from_stochastic_policy(policy)
+    policy = np.full(shape=self.transitions.shape[:2],      # (A, S)
+                     fill_value=1 / len(self.transitions),  # (1/num_actions)
+                     dtype=self.transitions.dtype)
+    return self.as_markov_chain_from_stochastic_policy(policy)
