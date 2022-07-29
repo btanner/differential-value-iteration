@@ -78,7 +78,7 @@ To run an example of applying a policy to one of our Markov Decision Processes
 
 # Get In Touch
 
-Please send a message to [Abhishek](github/abhisheknaik96)
-or [Brian](github/btanner) to get in touch!
+Please send a message to [Abhishek](https://github.com/abhisheknaik96)
+or [Brian](https://github.com/btanner) to get in touch!
 
 Or feel free to create an issue or send a pull request.
